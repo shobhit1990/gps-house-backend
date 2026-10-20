@@ -1,0 +1,24 @@
+# Node.js dependencies
+node_modules/
+*.DS_Store
+
+# Environment configuration files
+.env.development
+.env
+.cursorrules
+
+# Logs
+logs/
+*.log
+check/logs/
+
+# dist
+dist/
+
+# uploads
+uploads/
+upload/
+build/
+
+# coverage
+coverage/
