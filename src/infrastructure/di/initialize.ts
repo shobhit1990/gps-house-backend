@@ -8,17 +8,36 @@ import mysqlConfig from "../../mikro-orm.mysql.config";
 import mongoConfig from "../../mikro-orm.mongo.config";
 import { MySqlDriver } from "@mikro-orm/mysql";
 import { MongoDriver } from "@mikro-orm/mongodb";
+import { registerOwnerDependencies } from "./mysql/owner-container";
+import { registerLanguageDependencies } from "./mysql/language-container";
+import { registerTimeZoneDependencies } from "./mysql/timezone-container";
+import { registerClientDependencies } from "./mysql/client-container";
+import { registerMenuItemDependencies } from "./mysql/menuitem-container";
+import { registerTransporterDependencies } from "./mysql/transporter-container";
+import { registerAddVehicleDependencies } from "./mysql/addvehicle-container";
+import { registerPaymentDetailsDependencies } from "./mysql/paymentDetails-container";
 
 export async function initializeApp() {
   try {
     await createDatabaseIfNotExists();
+
+    registerOwnerDependencies();
+    registerLanguageDependencies();
+    registerTimeZoneDependencies();
+    registerClientDependencies();
+    registerMenuItemDependencies();
+    registerTransporterDependencies();
+    registerAddVehicleDependencies();
+    registerPaymentDetailsDependencies();
 
     const orm = await initializeORM();
 
     if (orm.mongoOrm) {
       registerMongoDependencies(orm.mongoOrm);
     } else {
-      logger.warn("MongoDB ORM not initialized; skipping Mongo dependency registration");
+      logger.warn(
+        "MongoDB ORM not initialized; skipping Mongo dependency registration",
+      );
     }
 
     registerMySqlDependencies(orm.mySqlOrm);
