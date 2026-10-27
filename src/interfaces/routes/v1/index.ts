@@ -6,6 +6,11 @@ import menuRoutes from "./menuRoutes";
 import transporterRouter from "./transporterRoutes";
 import addVehicleRoutes from "./addVehicleRoutes";
 import paymentDetailsRoutes from "./paymentDetailsRoutes";
+import billingDetailRoutes from "./billingDetailRoutes";
+import technicianRoutes from "./technicianRoutes";
+import jobsheetRoutes from "./jobsheetRoutes";
+import addGroupRoutes from "./addGroupRoutes";
+import userRoutes from "./userRoutes";
 
 import masterRoutes from "./masterRoutes";
 
@@ -18,6 +23,11 @@ router.use("/menu", menuRoutes);
 router.use("/transporter", transporterRouter);
 router.use("/vehicle", addVehicleRoutes);
 router.use("/paymentDetails", paymentDetailsRoutes);
+router.use("/billingDetail", billingDetailRoutes);
+router.use("/technician", technicianRoutes);
+router.use("/jobsheet", jobsheetRoutes);
+router.use("/addGroup", addGroupRoutes);
+router.use("/user", userRoutes);
 
 //master
 router.use("/master", masterRoutes);
