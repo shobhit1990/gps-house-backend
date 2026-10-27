@@ -1,9 +1,13 @@
-export class FormError {
-  field: string;
-  message: string;
+import { IsArray, IsOptional, IsString } from "class-validator";
 
-  constructor(field: string, message: string) {
-    this.field = field;
-    this.message = message;
-  }
+export class FormError {
+  @IsString()
+  field!: string;
+
+  @IsString()
+  message!: string;
+
+  @IsOptional()
+  @IsArray()
+  children?: FormError[];
 }
