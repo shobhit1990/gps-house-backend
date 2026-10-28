@@ -16,6 +16,11 @@ import { registerMenuItemDependencies } from "./mysql/menuitem-container";
 import { registerTransporterDependencies } from "./mysql/transporter-container";
 import { registerAddVehicleDependencies } from "./mysql/addvehicle-container";
 import { registerPaymentDetailsDependencies } from "./mysql/paymentDetails-container";
+import { registerBillingDetailDependencies } from "./mysql/billingDetail-container";
+import { registerTechnicianDependencies } from "./mysql/technician-container";
+import { registerJobsheetDependencies } from "./mysql/jobsheet-container";
+import { registerAddGroupDependencies } from "./mysql/addGroup-container";
+import { registerUserDependencies } from "./mysql/user-container";
 
 export async function initializeApp() {
   try {
@@ -29,6 +34,11 @@ export async function initializeApp() {
     registerTransporterDependencies();
     registerAddVehicleDependencies();
     registerPaymentDetailsDependencies();
+    registerBillingDetailDependencies();
+    registerTechnicianDependencies();
+    registerJobsheetDependencies();
+    registerAddGroupDependencies();
+    registerUserDependencies();
 
     const orm = await initializeORM();
 
