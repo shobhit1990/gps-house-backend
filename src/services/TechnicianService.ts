@@ -10,6 +10,7 @@ import { TimeZone } from "../domain/entities/mysql/TimeZone";
 import { Status } from "../domain/enums/status";
 import { ITechnicianRepository } from "../domain/repositories/mysql/ITechnicianRepository";
 import { AppError } from "../utils/errors";
+import { hashPassword } from "../utils/passwordHash";
 import {
   ITechnicianService,
   TechnicianResponse,
@@ -55,7 +56,7 @@ export class TechnicianService implements ITechnicianService {
 
     const technician = new Technician();
     technician.userName = payload.userName.trim();
-    technician.password = payload.password;
+    technician.password = await hashPassword(payload.password);
     technician.companyName = payload.companyName;
     technician.name = payload.name;
     technician.email = payload.email?.trim().toLowerCase();
@@ -97,7 +98,7 @@ export class TechnicianService implements ITechnicianService {
       ) {
         throw new AppError("Password and Confirm Password do not match", 400);
       }
-      technician.password = payload.password;
+      technician.password = await hashPassword(payload.password);
     }
 
     await this.ensureUniqueFields(payload, externalId);
@@ -179,12 +180,14 @@ export class TechnicianService implements ITechnicianService {
     payload: Pick<UpdateTechnicianDto, "userName" | "email" | "phone">,
     excludeExternalId?: string,
   ): Promise<void> {
+    const userName = payload.userName?.trim();
+    const email = payload.email?.trim().toLowerCase();
     const conditions: Array<Record<string, string | number>> = [];
-    if (payload.userName?.trim()) {
-      conditions.push({ userName: payload.userName.trim() });
+    if (userName) {
+      conditions.push({ userName });
     }
-    if (payload.email?.trim()) {
-      conditions.push({ email: payload.email.trim().toLowerCase() });
+    if (email) {
+      conditions.push({ email });
     }
     if (payload.phone !== undefined) {
       conditions.push({ phone: payload.phone });
@@ -198,10 +201,9 @@ export class TechnicianService implements ITechnicianService {
     });
     if (existing) {
       const field =
-        existing.userName === payload.userName?.trim()
+        userName && existing.userName === userName
           ? "userName"
-          : existing.email?.toLowerCase() ===
-              payload.email?.trim().toLowerCase()
+          : email && existing.email?.toLowerCase() === email
             ? "email"
             : "phone";
       const label =

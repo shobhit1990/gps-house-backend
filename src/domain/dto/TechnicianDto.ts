@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsString,
   Matches,
+  ValidateIf,
 } from "class-validator";
 import { Expose } from "class-transformer";
 import { Status } from "../enums/status";
@@ -68,7 +69,7 @@ export class CreateTechnicianDto {
 }
 
 export class UpdateTechnicianDto {
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
   @IsString({ message: "Username must be a string" })
   @Matches(/^[A-Za-z0-9_@*-]+$/, {
     message: "Username contains invalid characters",

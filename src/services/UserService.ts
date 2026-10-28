@@ -8,6 +8,7 @@ import { User } from "../domain/entities/mysql/User";
 import { Status } from "../domain/enums/status";
 import { IUserRepository } from "../domain/repositories/mysql/IUserRepository";
 import { AppError } from "../utils/errors";
+import { hashPassword } from "../utils/passwordHash";
 import { IUserService } from "./interfaces/IUserService";
 
 @injectable()
@@ -98,7 +99,7 @@ export class UserService implements IUserService {
 
     const user = new User();
     user.userName = payload.userName;
-    user.password = payload.password;
+    user.password = await hashPassword(payload.password);
     user.group = group;
     user.timezone = timezone;
     user.companyName = payload.companyName;
@@ -138,7 +139,7 @@ export class UserService implements IUserService {
       if (payload.password !== payload.confirmPassword) {
         throw new AppError("Password and Confirm Password do not match", 400);
       }
-      user.password = payload.password;
+      user.password = await hashPassword(payload.password);
     } else if (payload.confirmPassword !== undefined) {
       throw new AppError(
         "password is required when changing confirmPassword",
