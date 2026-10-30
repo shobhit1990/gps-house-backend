@@ -7,20 +7,21 @@ import { TimeZone } from "../../../../domain/entities/mysql/TimeZone";
 import { User } from "../../../../domain/entities/mysql/User";
 import { IUserRepository } from "../../../../domain/repositories/mysql/IUserRepository";
 import { AppError } from "../../../../utils/errors";
+import { instanceToPlain } from "class-transformer";
 
 @injectable()
 export class UserRepository implements IUserRepository {
   constructor(private readonly em: EntityManager) {}
 
-  async getUsers(): Promise<User[]> {
+async getUsers(): Promise<User[]> {
     return this.em.fork().find(
-      User,
-      { isDeleted: false },
-      {
-        populate: ["group", "timezone"],
-      },
+        User,
+        { isDeleted: false },
+        {
+            populate: ["group", "timezone"],
+        },
     );
-  }
+}
 
   async getUserById(externalId: string): Promise<User | null> {
     return this.em

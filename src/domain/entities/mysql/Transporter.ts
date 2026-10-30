@@ -88,7 +88,7 @@ export class Transporter {
 
     @Exclude()
     @ManyToOne(() => Client, { nullable: true })
-    createdBy!: Client;
+    createdBy?: Client;
 
     @Exclude()
     @ManyToOne(() => Client, { nullable: true })

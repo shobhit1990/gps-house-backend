@@ -1,7 +1,7 @@
 import { User } from "../../entities/mysql/User";
 
 export interface IUserRepository {
-  getUsers(): Promise<User[]>;
+ getUsers(): Promise<User[]>;
 
   getUserById(externalId: string): Promise<User | null>;
 

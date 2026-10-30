@@ -12,6 +12,7 @@ import { PaymentTerm } from "../../enums/PaymentTerm";
 import { Status } from "../../enums/status";
 import { Type } from "../../enums/Type";
 import { Transporter } from "./Transporter";
+import { Client } from "./Client";
 
 @Entity({ tableName: "payment_details" })
 export class PaymentDetails {
@@ -69,4 +70,16 @@ export class PaymentDetails {
   @Exclude()
   @Property({ onUpdate: () => new Date() })
   updatedAt: Date = new Date();
+
+  @Exclude()
+  @ManyToOne(() => Client, { nullable: true })
+  createdBy?: Client;
+
+  @Exclude()
+  @ManyToOne(() => Client, { nullable: true })
+  updatedBy?: Client;
+
+  @Exclude()
+  @ManyToOne(() => Client, { nullable: true })
+  deletedBy?: Client;
 }

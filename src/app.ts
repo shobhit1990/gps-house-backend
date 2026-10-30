@@ -32,6 +32,10 @@ app.use(
 );
 
 app.use(injectHeaders);
+app.use(
+  "/uploads",
+  express.static(path.join(process.cwd(), "public", "uploads")),
+);
 app.use("/upload", express.static(path.join(process.cwd(), "upload")));
 app.use("/api", routes);
 

@@ -13,13 +13,11 @@ router.get(
 
 router.get(
   "/language",
-//   authorize(MenuName.User, PermissionAction.View),
   masterController.getMasterLanguageList
 );
 
 router.get(
   "/timeZone",
-//   authorize(MenuName.User, PermissionAction.View),
   masterController.getMasterLanguageList
 );
 
@@ -47,6 +45,40 @@ router.get(
   masterController.getMasterTransporterList
 );
 
+router.get(
+  "/deviceType",
+//   authorize(MenuName.User, PermissionAction.View),
+  masterController.getMasterDeviceTypeList
+);
+
+router.get(
+  "/expenseType",
+//   authorize(MenuName.User, PermissionAction.View),
+  masterController.getMasterExpenseTypeList
+);
+
+router.get(
+  "/role",
+//   authorize(MenuName.User, PermissionAction.View),
+  masterController.getMasterRoleList
+);
+
+router.get(
+  "/user",
+//   authorize(MenuName.User, PermissionAction.View),
+  masterController.getMasterUserList
+);
+
+router.get(
+  "/group",
+//   authorize(MenuName.User, PermissionAction.View),
+  masterController.getMasterGroupList
+);
+
+router.get(
+  "/alert",
+  masterController.getMasterAlertList
+);
 
 
 export default router;
