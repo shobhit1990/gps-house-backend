@@ -21,6 +21,17 @@ import { registerTechnicianDependencies } from "./mysql/technician-container";
 import { registerJobsheetDependencies } from "./mysql/jobsheet-container";
 import { registerAddGroupDependencies } from "./mysql/addGroup-container";
 import { registerUserDependencies } from "./mysql/user-container";
+import { registerDeviceTypeDependencies } from "./mysql/deviceType-container";
+import { registerAddInventoryDependencies } from "./mysql/addInventory-container";
+import { registerVehicleDetailDependencies } from "./mysql/vehicleDetail-container";
+import { registerExpenseTypeDependencies } from "./mysql/expenseType-container";
+import { registerDeviceDependencies } from "./mysql/device-container";
+import { registerUploadDocumentsDependencies } from "./mysql/uploadDocuments-container";
+import { registerRoleDependencies } from "./mysql/role-container";
+import { registerAlertDependencies } from "./mysql/alert-container";
+import { registerServiceMaintenanceDependencies } from "./mysql/serviceMaintenance-container";
+import { registerParkedScheduleDependencies } from "./mysql/parkedSchedule-container";
+import { registerAnnouncementDependencies } from "./mysql/announcement-container";
 
 export async function initializeApp() {
   try {
@@ -39,6 +50,17 @@ export async function initializeApp() {
     registerJobsheetDependencies();
     registerAddGroupDependencies();
     registerUserDependencies();
+    registerDeviceTypeDependencies();
+    registerAddInventoryDependencies();
+    registerVehicleDetailDependencies();
+    registerExpenseTypeDependencies();
+    registerDeviceDependencies();
+    registerUploadDocumentsDependencies();
+    registerRoleDependencies();
+    registerAlertDependencies();
+    registerServiceMaintenanceDependencies();
+    registerParkedScheduleDependencies();
+    registerAnnouncementDependencies();
 
     const orm = await initializeORM();
 

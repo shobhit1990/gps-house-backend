@@ -126,4 +126,16 @@ export class AddVehicle {
     @Exclude()
     @Property({ onUpdate: () => new Date() })
     updatedAt: Date = new Date();
+
+    @Exclude()
+    @ManyToOne(() => Client, { nullable: true })
+    createdBy?: Client;
+
+    @Exclude()
+    @ManyToOne(() => Client, { nullable: true })
+    updatedBy?: Client;
+
+    @Exclude()
+    @ManyToOne(() => Client, { nullable: true })
+    deletedBy?: Client;
 }
