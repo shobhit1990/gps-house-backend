@@ -22,6 +22,10 @@ import alertRoutes from "./alertRoutes";
 import serviceMaintenanceRoutes from "./serviceMaintenanceRoutes";
 import parkedScheduleRoutes from "./parkedScheduleRoutes";
 import announcementRoutes from "./announcementRoutes";
+import raiseTicketRoutes from "./raiseTicketRoutes";
+import vehicleConfigRoutes from "./vehicleConfigRoutes";
+import certificateAddRoutes from "./certificateAddRoutes";
+import transferCoinRoutes from "./transferCoinRoutes";
 
 import masterRoutes from "./masterRoutes";
 
@@ -50,6 +54,10 @@ router.use("/alert", alertRoutes);
 router.use("/serviceMaintenance", serviceMaintenanceRoutes);
 router.use("/parkedSchedule", parkedScheduleRoutes);
 router.use("/announcement", announcementRoutes);
+router.use("/raiseTicket", raiseTicketRoutes);
+router.use("/vehicleConfig", vehicleConfigRoutes);
+router.use("/certificateAdd", certificateAddRoutes);
+router.use("/transferCoin", transferCoinRoutes);
 
 //master
 router.use("/master", masterRoutes);
