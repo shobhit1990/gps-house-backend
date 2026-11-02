@@ -16,12 +16,11 @@ import { IRoleService } from "../../../services/interfaces/IRoleService";
 import { IUserService } from "../../../services/interfaces/IUserService";
 import { IAddGroupService } from "../../../services/interfaces/IAddGroupService";
 import { IAlertService } from "../../../services/interfaces/IAlertService";
+import { IMasterLocationService } from "../../../services/interfaces/IMasterLocationService";
 
 @injectable()
 export class MasterController {
-
   constructor(
-
     @inject("IOwnerService")
     private readonly ownerService: IOwnerService,
 
@@ -61,60 +60,80 @@ export class MasterController {
     @inject("IAlertService")
     private readonly alertService: IAlertService,
 
-  ) { }
+    @inject("IMasterLocationService")
+    private readonly masterLocationService: IMasterLocationService,
+  ) {}
 
-  getMasterOwnerList = asyncHandler(async (req: CustomRequest, res: Response) => {
-    const ownerList = await this.ownerService.getOwner();
+  getMasterOwnerList = asyncHandler(
+    async (req: CustomRequest, res: Response) => {
+      const ownerList = await this.ownerService.getOwner();
+      res.status(200).json({
+        data: ownerList,
+        message: "Master Owner list fetch successfully",
+      });
+    },
+  );
+
+  getMasterLanguageList = asyncHandler(async (req: Request, res: Response) => {
+    const languageList = await this.languageService.getLanguage();
+
     res.status(200).json({
-      data: ownerList,
-      message: "Master Owner list fetch successfully"
-    })
+      data: languageList,
+      message: "Language list fetched successfully",
+    });
+  });
 
-  })
+  getMasterStateList = asyncHandler(async (_req: Request, res: Response) => {
+    const stateList = await this.masterLocationService.getStates();
+    res.status(200).json({
+      data: stateList,
+      message: "State list fetched successfully",
+    });
+  });
 
-  getMasterLanguageList = asyncHandler(
-    async (req: Request, res: Response) => {
-      const languageList = await this.languageService.getLanguage();
-
-      res.status(200).json({
-        data: languageList,
-        message: "Language list fetched successfully",
-      });
+  getMasterDistrictList = asyncHandler(async (req: Request, res: Response) => {
+    const queryStateId = req.query.stateId;
+    if (Array.isArray(queryStateId)) {
+      throw new AppError("stateId must be a single state ID", 400);
     }
-  );
 
-  getMasterTimeZoneList = asyncHandler(
-    async (req: Request, res: Response) => {
-      const timeZoneList = await this.timeZoneService.getTimeZone();
+    const stateId =
+      typeof queryStateId === "string" ? queryStateId.trim() : undefined;
+    const districtList = await this.masterLocationService.getDistricts(
+      stateId || undefined,
+    );
+    res.status(200).json({
+      data: districtList,
+      message: "District list fetched successfully",
+    });
+  });
 
-      res.status(200).json({
-        data: timeZoneList,
-        message: "TimeZone list fetched successfully",
-      });
-    }
-  );
+  getMasterTimeZoneList = asyncHandler(async (req: Request, res: Response) => {
+    const timeZoneList = await this.timeZoneService.getTimeZone();
 
-  getMasterVehicleList = asyncHandler(
-    async (req: Request, res: Response) => {
-      const vehicleList = await this.vehicleService.getAddVehicle();
+    res.status(200).json({
+      data: timeZoneList,
+      message: "TimeZone list fetched successfully",
+    });
+  });
 
-      res.status(200).json({
-        data: vehicleList,
-        message: "Vehicle list fetched successfully",
-      });
-    }
-  );
+  getMasterVehicleList = asyncHandler(async (req: Request, res: Response) => {
+    const vehicleList = await this.vehicleService.getAddVehicle();
 
-  getMasterClientList = asyncHandler(
-    async (req: Request, res: Response) => {
-      const clientList = await this.clientService.getClient();
+    res.status(200).json({
+      data: vehicleList,
+      message: "Vehicle list fetched successfully",
+    });
+  });
 
-      res.status(200).json({
-        data: clientList,
-        message: "Client list fetched successfully",
-      });
-    }
-  );
+  getMasterClientList = asyncHandler(async (req: Request, res: Response) => {
+    const clientList = await this.clientService.getClient();
+
+    res.status(200).json({
+      data: clientList,
+      message: "Client list fetched successfully",
+    });
+  });
 
   getMasterTechnicianList = asyncHandler(
     async (req: Request, res: Response) => {
@@ -124,7 +143,7 @@ export class MasterController {
         data: technicianList,
         message: "Technician list fetched successfully",
       });
-    }
+    },
   );
 
   getMasterTransporterList = asyncHandler(
@@ -135,7 +154,7 @@ export class MasterController {
         data: transporterList,
         message: "Transporter list fetched successfully",
       });
-    }
+    },
   );
 
   getMasterDeviceTypeList = asyncHandler(
@@ -146,7 +165,7 @@ export class MasterController {
         data: deviceTypeList,
         message: "DeviceType list fetched successfully",
       });
-    }
+    },
   );
 
   getMasterExpenseTypeList = asyncHandler(
@@ -157,53 +176,44 @@ export class MasterController {
         data: expenseTypeList,
         message: "ExpenseType list fetched successfully",
       });
-    }
+    },
   );
 
-  getMasterRoleList = asyncHandler(
-    async (req: Request, res: Response) => {
-      const roleList = await this.roleService.getRole();
+  getMasterRoleList = asyncHandler(async (req: Request, res: Response) => {
+    const roleList = await this.roleService.getRole();
 
-      res.status(200).json({
-        data: roleList,
-        message: "Role list fetched successfully",
-      });
-    }
-  );
+    res.status(200).json({
+      data: roleList,
+      message: "Role list fetched successfully",
+    });
+  });
 
-  getMasterUserList = asyncHandler(
-    async (req: Request, res: Response) => {
-      const userList = await this.userService.getUsers();
+  getMasterUserList = asyncHandler(async (req: Request, res: Response) => {
+    const userList = await this.userService.getUsers();
 
-      res.status(200).json({
-        data: userList.map(
-          ({ password, ...userWithoutPassword }) => userWithoutPassword,
-        ),
-        message: "User list fetched successfully",
-      });
-    }
-  );
+    res.status(200).json({
+      data: userList.map(
+        ({ password, ...userWithoutPassword }) => userWithoutPassword,
+      ),
+      message: "User list fetched successfully",
+    });
+  });
 
-  getMasterGroupList = asyncHandler(
-    async (req: Request, res: Response) => {
-      const groupList = await this.addGroupService.getAddGroups();
+  getMasterGroupList = asyncHandler(async (req: Request, res: Response) => {
+    const groupList = await this.addGroupService.getAddGroups();
 
-      res.status(200).json({
-        data: groupList,
-        message: "Group list fetched successfully",
-      });
-    }
-  );
+    res.status(200).json({
+      data: groupList,
+      message: "Group list fetched successfully",
+    });
+  });
 
-  getMasterAlertList = asyncHandler(
-    async (req: Request, res: Response) => {
-      const alertList = await this.alertService.getAlert();
+  getMasterAlertList = asyncHandler(async (req: Request, res: Response) => {
+    const alertList = await this.alertService.getAlert();
 
-      res.status(200).json({
-        data: alertList,
-        message: "Alert list fetched successfully",
-      });
-    }
-  );
-
+    res.status(200).json({
+      data: alertList,
+      message: "Alert list fetched successfully",
+    });
+  });
 }

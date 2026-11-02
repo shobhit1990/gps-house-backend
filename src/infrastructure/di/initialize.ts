@@ -32,6 +32,11 @@ import { registerAlertDependencies } from "./mysql/alert-container";
 import { registerServiceMaintenanceDependencies } from "./mysql/serviceMaintenance-container";
 import { registerParkedScheduleDependencies } from "./mysql/parkedSchedule-container";
 import { registerAnnouncementDependencies } from "./mysql/announcement-container";
+import { registerRaiseTicketDependencies } from "./mysql/raiseTicket-container";
+import { registerVehicleConfigDependencies } from "./mysql/vehicleConfig-container";
+import { registerMasterLocationDependencies } from "./mysql/masterLocation-container";
+import { registerCertificateAddDependencies } from "./mysql/certificateAdd-container";
+import { registerTransferCoinDependencies } from "./mysql/transferCoin-container";
 
 export async function initializeApp() {
   try {
@@ -61,6 +66,11 @@ export async function initializeApp() {
     registerServiceMaintenanceDependencies();
     registerParkedScheduleDependencies();
     registerAnnouncementDependencies();
+    registerRaiseTicketDependencies();
+    registerVehicleConfigDependencies();
+    registerMasterLocationDependencies();
+    registerCertificateAddDependencies();
+    registerTransferCoinDependencies();
 
     const orm = await initializeORM();
 
