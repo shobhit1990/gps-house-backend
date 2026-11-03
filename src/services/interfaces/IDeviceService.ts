@@ -39,7 +39,9 @@ export interface IDeviceService {
   getDevices(): Promise<DeviceResponse[]>;
   getDeviceById(externalId: string): Promise<DeviceResponse>;
   getAvailableInventories(): Promise<DeviceInventoryResponse[]>;
-  getAvailableInventoryByImei(imei: string): Promise<DeviceInventoryResponse>;
+  getAvailableInventoryByExternalId(
+    externalId: string,
+  ): Promise<DeviceInventoryResponse>;
   createDevice(
     payload: CreateDeviceDto,
     actorUserId?: number,

@@ -1,10 +1,14 @@
-import { EntityManager } from "@mikro-orm/mysql";
+import { EntityManager, LockMode } from "@mikro-orm/mysql";
 import { injectable } from "tsyringe";
 import { ServiceMaintenance } from "../../../../domain/entities/mysql/ServiceMaintenance";
 import { AddVehicle } from "../../../../domain/entities/mysql/AddVehicle";
 import { Client } from "../../../../domain/entities/mysql/Client";
-import { IServiceMaintenanceRepository } from "../../../../domain/repositories/mysql/IServiceMaintenanceRepository";
+import {
+  IServiceMaintenanceRepository,
+  ServiceMaintenanceBulkCreateResult,
+} from "../../../../domain/repositories/mysql/IServiceMaintenanceRepository";
 import { AppError } from "../../../../utils/errors";
+import { getServiceMaintenanceDuplicateKey } from "../../../../utils/serviceMaintenanceDuplicate";
 
 @injectable()
 export class ServiceMaintenanceRepository
@@ -51,6 +55,87 @@ export class ServiceMaintenanceRepository
     await em.persistAndFlush(serviceMaintenance);
     await em.populate(serviceMaintenance, ["vehicle"]);
     return serviceMaintenance;
+  }
+
+  async bulkCreateServiceMaintenances(
+    serviceMaintenances: ServiceMaintenance[],
+  ): Promise<ServiceMaintenanceBulkCreateResult> {
+    if (serviceMaintenances.length === 0) {
+      return { insertedRecords: 0, duplicateRecords: 0 };
+    }
+
+    const em = this.em.fork();
+    return em.transactional(async (transactionalEm) => {
+      const vehicleIds = [
+        ...new Set(serviceMaintenances.map(({ vehicle }) => vehicle.id)),
+      ].sort((a, b) => a - b);
+      const vehicles = await transactionalEm.find(
+        AddVehicle,
+        { id: { $in: vehicleIds } },
+        { lockMode: LockMode.PESSIMISTIC_WRITE },
+      );
+      const vehicleExternalIds = new Map(
+        vehicles.map((vehicle) => [vehicle.id, vehicle.externalId]),
+      );
+      const existingRecords = await transactionalEm.find(
+        ServiceMaintenance,
+        { vehicle: { $in: vehicleIds }, isDeleted: false },
+        { populate: ["vehicle"] },
+      );
+      const existingKeys = new Set(
+        existingRecords.map((record) =>
+          getServiceMaintenanceDuplicateKey(
+            record.vehicle.externalId,
+            record.serviceName,
+          ),
+        ),
+      );
+
+      const newRecords: ServiceMaintenance[] = [];
+      let duplicateRecords = 0;
+      for (const serviceMaintenance of serviceMaintenances) {
+        const vehicleExternalId = vehicleExternalIds.get(
+          serviceMaintenance.vehicle.id,
+        );
+        if (!vehicleExternalId) {
+          throw new AppError(
+            "Vehicle not found while saving service maintenance records",
+            400,
+          );
+        }
+
+        const duplicateKey = getServiceMaintenanceDuplicateKey(
+          vehicleExternalId,
+          serviceMaintenance.serviceName,
+        );
+        if (existingKeys.has(duplicateKey)) {
+          duplicateRecords += 1;
+          continue;
+        }
+        existingKeys.add(duplicateKey);
+
+        serviceMaintenance.vehicle = transactionalEm.getReference(
+          AddVehicle,
+          serviceMaintenance.vehicle.id,
+        );
+        if (serviceMaintenance.createdBy) {
+          serviceMaintenance.createdBy = transactionalEm.getReference(
+            Client,
+            serviceMaintenance.createdBy.id,
+          );
+        }
+        newRecords.push(serviceMaintenance);
+      }
+
+      if (newRecords.length > 0) {
+        transactionalEm.persist(newRecords);
+        await transactionalEm.flush();
+      }
+      return {
+        insertedRecords: newRecords.length,
+        duplicateRecords,
+      };
+    });
   }
 
   async updateServiceMaintenance(

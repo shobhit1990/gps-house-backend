@@ -18,7 +18,6 @@ const trimString = ({ value }: { value: unknown }) =>
 export class CreateExpenseTypeDto {
   @IsString()
   @IsNotEmpty({ message: "expenseName is required" })
-  @MaxLength(255)
   @Transform(trimString)
   expenseName!: string;
 
@@ -37,7 +36,6 @@ export class UpdateExpenseTypeDto {
   @ValidateIf((_object, value) => value !== undefined)
   @IsString()
   @IsNotEmpty({ message: "expenseName cannot be empty" })
-  @MaxLength(255)
   @Transform(trimString)
   expenseName?: string;
 

@@ -19,6 +19,58 @@ export class ServiceMaintenanceController {
     private readonly serviceMaintenanceService: IServiceMaintenanceService,
   ) {}
 
+  downloadServiceMaintenanceExport = asyncHandler(
+    async (_req: Request, res: Response) => {
+      const workbook =
+        await this.serviceMaintenanceService.getServiceMaintenanceExport();
+      res.status(200).set({
+        "Content-Type":
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "Content-Disposition":
+          'attachment; filename="service-maintenance-export.xlsx"',
+        "Content-Length": String(workbook.length),
+        "Cache-Control": "no-store",
+        "X-Content-Type-Options": "nosniff",
+      });
+      res.end(workbook);
+    },
+  );
+
+  bulkUploadServiceMaintenances = asyncHandler(
+    async (
+      req: CustomRequest & { file?: Express.Multer.File },
+      res: Response,
+    ) => {
+      if (!req.file) {
+        res.status(400).json({
+          success: false,
+          message: "Service maintenance upload validation failed",
+          totalRecords: 0,
+          insertedRecords: 0,
+          duplicateRecords: 0,
+          failedRecords: 0,
+          errors: [
+            {
+              row: 1,
+              column: "file",
+              message: "Excel file is required in the 'file' field",
+            },
+          ],
+        });
+        return;
+      }
+
+      const result =
+        await this.serviceMaintenanceService.bulkUploadServiceMaintenances(
+          req.file.originalname,
+          req.file.buffer,
+          req.userId,
+        );
+      const { httpStatus, ...response } = result;
+      res.status(httpStatus).json(response);
+    },
+  );
+
   getServiceMaintenances = asyncHandler(
     async (_req: Request, res: Response) => {
       const details =

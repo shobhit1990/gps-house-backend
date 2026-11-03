@@ -22,7 +22,7 @@ export class ExpenseType {
   @Index()
   externalId: string = uuidv4();
 
-  @Property({ nullable: false, length: 255 })
+  @Property({ nullable: false})
   @Index()
   expenseName!: string;
 

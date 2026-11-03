@@ -25,6 +25,7 @@ import { registerDeviceTypeDependencies } from "./mysql/deviceType-container";
 import { registerAddInventoryDependencies } from "./mysql/addInventory-container";
 import { registerVehicleDetailDependencies } from "./mysql/vehicleDetail-container";
 import { registerExpenseTypeDependencies } from "./mysql/expenseType-container";
+import { registerExpenseDependencies } from "./mysql/expense-container";
 import { registerDeviceDependencies } from "./mysql/device-container";
 import { registerUploadDocumentsDependencies } from "./mysql/uploadDocuments-container";
 import { registerRoleDependencies } from "./mysql/role-container";
@@ -59,6 +60,7 @@ export async function initializeApp() {
     registerAddInventoryDependencies();
     registerVehicleDetailDependencies();
     registerExpenseTypeDependencies();
+    registerExpenseDependencies();
     registerDeviceDependencies();
     registerUploadDocumentsDependencies();
     registerRoleDependencies();

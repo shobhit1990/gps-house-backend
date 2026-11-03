@@ -60,22 +60,23 @@ export class DeviceRepository implements IDeviceRepository {
     );
   }
 
-  async getAvailableInventoryByImei(
-    imei: string,
+  async getAvailableInventoryByExternalId(
+    externalId: string,
   ): Promise<AddInventory | null> {
     const em = this.em.fork();
     const inventory = await em.findOne(
       AddInventory,
       {
-        imei,
+        externalId,
         assignType: AssignType.CLIENT,
         isDeleted: false,
+        imei: { $ne: null },
       },
       { populate: ["deviceType", "client"] },
     );
     if (!inventory) return null;
 
-    const device = await em.findOne(Device, { imei });
+    const device = await em.findOne(Device, { imei: inventory.imei });
     return device ? null : inventory;
   }
 

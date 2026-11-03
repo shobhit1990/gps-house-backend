@@ -39,11 +39,11 @@ export class DeviceService implements IDeviceService {
     return inventories.map((inventory) => this.toInventoryResponse(inventory));
   }
 
-  async getAvailableInventoryByImei(
-    imei: string,
+  async getAvailableInventoryByExternalId(
+    externalId: string,
   ): Promise<DeviceInventoryResponse> {
     const inventory =
-      await this.deviceRepository.getAvailableInventoryByImei(imei);
+      await this.deviceRepository.getAvailableInventoryByExternalId(externalId);
     if (!inventory) {
       throw new AppError("Available inventory item not found", 404);
     }
