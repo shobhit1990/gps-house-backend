@@ -20,10 +20,16 @@ const populate = [
 export class ExpenseRepository implements IExpenseRepository {
   constructor(private readonly em: EntityManager) {}
 
-  async getExpenses(): Promise<Expense[]> {
-    return this.em
-      .fork()
-      .find(Expense, { isDeleted: false }, { populate: [...populate] });
+  async getExpenses(limit?: number, offset?: number): Promise<Expense[]> {
+    return this.em.fork().find(
+      Expense,
+      { isDeleted: false },
+      {
+        populate: [...populate],
+        ...(limit !== undefined ? { limit } : {}),
+        ...(offset !== undefined ? { offset } : {}),
+      },
+    );
   }
 
   async getExpenseById(externalId: string): Promise<Expense | null> {

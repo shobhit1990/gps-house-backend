@@ -4,6 +4,7 @@ import {
   IsEnum,
   IsBoolean,
   IsInt,
+  IsIn,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -99,7 +100,7 @@ export class AddUserDto {
 
   @IsOptional()
   @Transform(({ value }) => (value === "" ? undefined : value))
-  @IsEnum(UserType, { message: enumMessage("userType", UserType) })
+  @IsIn([UserType.USER], { message: "userType must be USER" })
   userType?: UserType;
 
   @IsOptional()

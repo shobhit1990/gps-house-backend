@@ -2,7 +2,7 @@ import { Expense } from "../../entities/mysql/Expense";
 import { Client } from "../../entities/mysql/Client";
 
 export interface IExpenseRepository {
-  getExpenses(): Promise<Expense[]>;
+  getExpenses(limit?: number, offset?: number): Promise<Expense[]>;
 
   getExpenseById(externalId: string): Promise<Expense | null>;
 

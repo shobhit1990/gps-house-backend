@@ -165,7 +165,9 @@ export class TechnicianService implements ITechnicianService {
     }
 
     unifiedUser.userName = updated.userName;
-    unifiedUser.password = updated.password;
+    if (payload.password !== undefined) {
+      unifiedUser.password = updated.password;
+    }
     unifiedUser.companyName = updated.companyName;
     unifiedUser.name = updated.name;
     unifiedUser.email = updated.email;

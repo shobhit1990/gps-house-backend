@@ -25,7 +25,7 @@ export interface ExpenseResponse {
 }
 
 export interface IExpenseService {
-  getExpenses(): Promise<ExpenseResponse[]>;
+  getExpenses(limit?: number, offset?: number): Promise<ExpenseResponse[]>;
 
   getExpenseById(externalId: string): Promise<ExpenseResponse>;
 

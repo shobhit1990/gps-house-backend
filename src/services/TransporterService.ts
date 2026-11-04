@@ -377,7 +377,9 @@ export class TransporterService implements ITransporterService {
     }
 
     unifiedUser.userName = existing.userName;
-    unifiedUser.password = existing.password;
+    if (dto.password) {
+      unifiedUser.password = existing.password;
+    }
     unifiedUser.companyName = existing.companyName;
     unifiedUser.name = existing.name;
     unifiedUser.email = existing.email;

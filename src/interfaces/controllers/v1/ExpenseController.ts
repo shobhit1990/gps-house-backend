@@ -19,8 +19,10 @@ export class ExpenseController {
     private readonly expenseService: IExpenseService,
   ) {}
 
-  getExpenses = asyncHandler(async (_req: Request, res: Response) => {
-    const expenses = await this.expenseService.getExpenses();
+  getExpenses = asyncHandler(async (req: Request, res: Response) => {
+    const limit = this.parseQueryInteger(req.query.limit, "limit", 1);
+    const offset = this.parseQueryInteger(req.query.offset, "offset", 0);
+    const expenses = await this.expenseService.getExpenses(limit, offset);
     res.status(200).json({
       message: "Expense list fetched successfully",
       data: expenses,
@@ -78,6 +80,29 @@ export class ExpenseController {
       throw new AppError("Invalid expense ID", 400);
     }
     return externalId;
+  }
+
+  private parseQueryInteger(
+    value: unknown,
+    field: string,
+    minimum: number,
+  ): number | undefined {
+    if (value === undefined) return undefined;
+    if (typeof value !== "string" || !/^\d+$/.test(value)) {
+      throw new AppError(
+        `${field} must be an integer greater than or equal to ${minimum}`,
+        400,
+      );
+    }
+
+    const parsed = Number(value);
+    if (!Number.isSafeInteger(parsed) || parsed < minimum) {
+      throw new AppError(
+        `${field} must be an integer greater than or equal to ${minimum}`,
+        400,
+      );
+    }
+    return parsed;
   }
 
   private async validateDto(dto: object): Promise<void> {

@@ -26,6 +26,7 @@ export function IsUsername(validationOptions?: ValidationOptions) {
   };
 }
 
+
 export function IsName(validationOptions?: ValidationOptions) {
   return function (object: Object, propertyName: string) {
     registerDecorator({
@@ -200,16 +201,17 @@ export function IsPassword(validationOptions?: ValidationOptions) {
           }
 
           // Password requirements:
-          // - Minimum 8 characters
+          // - 8 to 72 characters
           // - At least one uppercase letter
           // - At least one lowercase letter
           // - At least one digit
           // - At least one special character
-          const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
+          const passwordRegex =
+            /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,72}$/;
           return passwordRegex.test(value);
         },
         defaultMessage(args: ValidationArguments) {
-          return `${args.property} must be at least 8 characters with at least one uppercase letter, one lowercase letter, one digit, and one special character (@$!%*?&#)`;
+          return `${args.property} must be 8 to 72 characters with at least one uppercase letter, one lowercase letter, one digit, and one special character (@$!%*?&#)`;
         },
       },
     });
@@ -279,5 +281,3 @@ export function IsDescription(validationOptions?: ValidationOptions) {
     });
   };
 }
-
-

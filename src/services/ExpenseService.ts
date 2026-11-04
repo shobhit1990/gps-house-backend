@@ -19,8 +19,11 @@ export class ExpenseService implements IExpenseService {
     private readonly em: EntityManager,
   ) {}
 
-  async getExpenses(): Promise<ExpenseResponse[]> {
-    const expenses = await this.expenseRepository.getExpenses();
+  async getExpenses(
+    limit?: number,
+    offset?: number,
+  ): Promise<ExpenseResponse[]> {
+    const expenses = await this.expenseRepository.getExpenses(limit, offset);
     return expenses.map((expense) => this.toResponse(expense));
   }
 

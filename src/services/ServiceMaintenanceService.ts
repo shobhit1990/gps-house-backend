@@ -17,6 +17,14 @@ import { IServiceMaintenanceRepository } from "../domain/repositories/mysql/ISer
 import { AppError } from "../utils/errors";
 import { getServiceMaintenanceDuplicateKey } from "../utils/serviceMaintenanceDuplicate";
 import {
+  ParsedServiceMaintenanceWorksheet,
+  parseServiceMaintenanceWorkbook,
+} from "../utils/parseServiceMaintenanceWorkbook";
+import {
+  assertZipUncompressedSizeWithinLimit,
+  isZipArchive,
+} from "../utils/zipArchive";
+import {
   IServiceMaintenanceService,
   ServiceMaintenanceBulkUploadError,
   ServiceMaintenanceBulkUploadResult,
@@ -49,6 +57,12 @@ const SERVICE_MAINTENANCE_EXCEL_COLUMNS = [
   "status",
   "reason",
 ] as const;
+
+const MAX_BULK_WORKSHEET_ROWS = 50_000;
+const MAX_BULK_WORKSHEET_COLUMNS = 256;
+const MAX_BULK_WORKSHEET_AREA = 1_000_000;
+const SQL_INT_MIN = -2147483648;
+const SQL_INT_MAX = 2147483647;
 
 type ServiceMaintenanceExcelColumn =
   (typeof SERVICE_MAINTENANCE_EXCEL_COLUMNS)[number];
@@ -193,26 +207,35 @@ export class ServiceMaintenanceService implements IServiceMaintenanceService {
       ]);
     }
 
-    let workbook: XLSX.WorkBook;
+    let parsedWorksheet: ParsedServiceMaintenanceWorksheet;
     try {
-      workbook = XLSX.read(fileBuffer, { type: "buffer", cellDates: true });
+      const isZip = isZipArchive(fileBuffer);
+      if (extension === ".xlsx" && !isZip) {
+        throw new Error("The .xlsx file is not a valid ZIP archive");
+      }
+      if (isZip) {
+        assertZipUncompressedSizeWithinLimit(fileBuffer);
+      }
+      parsedWorksheet = await parseServiceMaintenanceWorkbook(fileBuffer);
     } catch (error) {
+      logger.error({
+        message: "Unable to parse service maintenance workbook",
+        error: error instanceof Error ? error.message : String(error),
+      });
       return this.bulkUploadFailure(0, [
         {
           row: 1,
           column: "file",
           message:
             error instanceof Error
-              ? `Unable to read Excel file: ${error.message}`
+              ? error.message
               : "Unable to read Excel file",
         },
       ]);
     }
 
-    const sheetName = workbook.SheetNames[0];
-    const sheet = sheetName ? workbook.Sheets[sheetName] : undefined;
-    const sheetRef = sheet?.["!ref"];
-    if (!sheet || !sheetRef) {
+    const sheetRef = parsedWorksheet.sheetRef;
+    if (!parsedWorksheet.sheetName || !sheetRef) {
       return this.bulkUploadFailure(0, [
         {
           row: 1,
@@ -222,7 +245,33 @@ export class ServiceMaintenanceService implements IServiceMaintenanceService {
       ]);
     }
 
+    const cells = new Map(parsedWorksheet.cells);
     const range = XLSX.utils.decode_range(sheetRef);
+    const rowCount = range.e.r - range.s.r + 1;
+    const columnCount = range.e.c - range.s.c + 1;
+    if (
+      !Number.isInteger(range.s.r) ||
+      !Number.isInteger(range.e.r) ||
+      !Number.isInteger(range.s.c) ||
+      !Number.isInteger(range.e.c) ||
+      range.s.r < 0 ||
+      range.s.c < 0 ||
+      rowCount < 1 ||
+      columnCount < 1 ||
+      rowCount > MAX_BULK_WORKSHEET_ROWS ||
+      columnCount > MAX_BULK_WORKSHEET_COLUMNS ||
+      rowCount * columnCount > MAX_BULK_WORKSHEET_AREA
+    ) {
+      return this.bulkUploadFailure(0, [
+        {
+          row: 1,
+          column: "file",
+          message:
+            "The first worksheet exceeds the supported row or column limits",
+        },
+      ]);
+    }
+
     const headerRowNumber = range.s.r + 1;
     const headerIndexes = new Map<string, number>();
     const canonicalColumns = new Map<string, ServiceMaintenanceExcelColumn>(
@@ -235,10 +284,10 @@ export class ServiceMaintenanceService implements IServiceMaintenanceService {
     const errors: ServiceMaintenanceBulkUploadError[] = [];
 
     for (let columnIndex = range.s.c; columnIndex <= range.e.c; columnIndex++) {
-      const cell = sheet[
-        XLSX.utils.encode_cell({ r: range.s.r, c: columnIndex })
-      ] as XLSX.CellObject | undefined;
-      const header = String(cell?.v ?? "").trim();
+      const cell = cells.get(
+        XLSX.utils.encode_cell({ r: range.s.r, c: columnIndex }),
+      );
+      const header = String(cell ?? "").trim();
       if (!header) continue;
 
       const column = canonicalColumns.get(header.toLowerCase());
@@ -280,10 +329,9 @@ export class ServiceMaintenanceService implements IServiceMaintenanceService {
         columnIndex <= range.e.c;
         columnIndex++
       ) {
-        const cell = sheet[
-          XLSX.utils.encode_cell({ r: rowIndex, c: columnIndex })
-        ] as XLSX.CellObject | undefined;
-        const value = cell?.v ?? "";
+        const value =
+          cells.get(XLSX.utils.encode_cell({ r: rowIndex, c: columnIndex })) ??
+          "";
         values[columnIndex] = value;
         if (String(value).trim() !== "") hasValues = true;
       }
@@ -333,7 +381,11 @@ export class ServiceMaintenanceService implements IServiceMaintenanceService {
           continue;
         }
 
-        const normalized = this.normalizeBulkExcelCell(column, value);
+        const normalized = this.normalizeBulkExcelCell(
+          column,
+          value,
+          parsedWorksheet.date1904,
+        );
         if (normalized.error) {
           errors.push({
             row: sourceRow.row,
@@ -675,6 +727,7 @@ export class ServiceMaintenanceService implements IServiceMaintenanceService {
   private normalizeBulkExcelCell(
     column: ServiceMaintenanceExcelColumn,
     value: unknown,
+    date1904 = false,
   ): { value?: unknown; error?: string } {
     if (stringExcelColumns.has(column)) {
       if (typeof value !== "string") return { error: "Value must be text" };
@@ -709,11 +762,17 @@ export class ServiceMaintenanceService implements IServiceMaintenanceService {
       if (integerExcelColumns.has(column) && !Number.isInteger(normalized)) {
         return { error: "Value must be an integer" };
       }
+      if (
+        integerExcelColumns.has(column) &&
+        (normalized < SQL_INT_MIN || normalized > SQL_INT_MAX)
+      ) {
+        return { error: "Value must be between -2147483648 and 2147483647" };
+      }
       return { value: normalized };
     }
 
     if (column === "lastServiceDate") {
-      const date = this.normalizeBulkExcelDate(value);
+      const date = this.normalizeBulkExcelDate(value, date1904);
       return date ? { value: date } : { error: "Value must be a valid date" };
     }
 
@@ -724,12 +783,15 @@ export class ServiceMaintenanceService implements IServiceMaintenanceService {
     return vehicleNumber.trim().toLocaleUpperCase("en-US");
   }
 
-  private normalizeBulkExcelDate(value: unknown): string | undefined {
+  private normalizeBulkExcelDate(
+    value: unknown,
+    date1904: boolean,
+  ): string | undefined {
     if (value instanceof Date && !Number.isNaN(value.getTime())) {
       return value.toISOString().slice(0, 10);
     }
     if (typeof value === "number" && Number.isFinite(value) && value >= 0) {
-      const parts = XLSX.SSF.parse_date_code(value);
+      const parts = XLSX.SSF.parse_date_code(value, { date1904 });
       if (parts && parts.y >= 1 && parts.y <= 9999) {
         return this.toBulkDateString(parts.y, parts.m, parts.d);
       }
