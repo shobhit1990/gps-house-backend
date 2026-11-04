@@ -1,3 +1,4 @@
+import { EntityManager } from "@mikro-orm/mysql";
 import { Transporter } from "../../entities/mysql/Transporter";
 import { User } from "../../entities/mysql/User";
 
@@ -13,5 +14,5 @@ export interface ITransporterRepository {
 
   updateTransporter(transporter: Transporter): Promise<Transporter>;
 
-  deleteTransporter(externalId: string): Promise<void>;
+  deleteTransporter(externalId: string, em: EntityManager): Promise<void>;
 }

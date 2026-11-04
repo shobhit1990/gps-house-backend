@@ -357,14 +357,14 @@ export class UserService implements IUserService {
   }
 
   async refreshAuthToken(refreshToken: string): Promise<UserLoginResult> {
-    const user = await this.userRepository.getUserForRefreshToken(
-      hashRefreshToken(refreshToken),
-    );
+    const presentedTokenHash = hashRefreshToken(refreshToken);
+    const user =
+      await this.userRepository.getUserForRefreshToken(presentedTokenHash);
     if (!user || user.status !== Status.ACTIVE) {
       throw new AppError("Invalid or expired refresh token", 401);
     }
 
-    return this.issueTokens(user);
+    return this.issueTokens(user, presentedTokenHash);
   }
 
   async logout(refreshToken: string): Promise<void> {
@@ -376,16 +376,23 @@ export class UserService implements IUserService {
     }
   }
 
-  private async issueTokens(user: User): Promise<UserLoginResult> {
+  private async issueTokens(
+    user: User,
+    expectedRefreshTokenHash?: string,
+  ): Promise<UserLoginResult> {
     const token = createAuthToken(user);
     const refresh = createRefreshToken();
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
-    await this.userRepository.updateRefreshToken(
+    const updatedRows = await this.userRepository.updateRefreshToken(
       user.externalId,
       refresh.hash,
       expiresAt,
+      expectedRefreshTokenHash,
     );
+    if (expectedRefreshTokenHash !== undefined && updatedRows === 0) {
+      throw new AppError("Invalid or expired refresh token", 401);
+    }
 
     return {
       user,

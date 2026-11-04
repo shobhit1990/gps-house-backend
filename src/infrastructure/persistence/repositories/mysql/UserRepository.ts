@@ -69,7 +69,7 @@ export class UserRepository implements IUserRepository {
         isDeleted: false,
       },
       {
-        populate: ["owner", "language", "timezone", "client"],
+        populate: ["owner", "language", "timezone", "client", "group"],
       },
     );
   }
@@ -84,7 +84,7 @@ export class UserRepository implements IUserRepository {
         status: Status.ACTIVE,
       },
       {
-        populate: ["owner", "language", "timezone", "client"],
+        populate: ["owner", "language", "timezone", "client", "group"],
       },
     );
   }
@@ -106,10 +106,17 @@ export class UserRepository implements IUserRepository {
     externalId: string,
     tokenHash: string | null,
     expiresAt: Date | null,
-  ): Promise<void> {
-    await this.em.fork().nativeUpdate(
+    expectedTokenHash?: string,
+  ): Promise<number> {
+    return this.em.fork().nativeUpdate(
       User,
-      { externalId, isDeleted: false },
+      {
+        externalId,
+        isDeleted: false,
+        ...(expectedTokenHash !== undefined
+          ? { refreshTokenHash: expectedTokenHash }
+          : {}),
+      },
       {
         refreshTokenHash: tokenHash,
         refreshTokenExpiresAt: expiresAt,

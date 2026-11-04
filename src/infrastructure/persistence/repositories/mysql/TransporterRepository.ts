@@ -108,10 +108,11 @@ export class TransporterRepository implements ITransporterRepository {
     return existing;
   }
 
-  async deleteTransporter(externalId: string): Promise<void> {
-    const emFork = this.em.fork();
-
-    const transporter = await emFork.findOne(Transporter, { externalId });
+  async deleteTransporter(
+    externalId: string,
+    em: EntityManager,
+  ): Promise<void> {
+    const transporter = await em.findOne(Transporter, { externalId });
 
     if (!transporter) {
       throw new AppError("Transporter not found", 404);
@@ -119,6 +120,6 @@ export class TransporterRepository implements ITransporterRepository {
 
     transporter.isDeleted = true;
 
-    await emFork.persistAndFlush(transporter);
+    await em.flush();
   }
 }

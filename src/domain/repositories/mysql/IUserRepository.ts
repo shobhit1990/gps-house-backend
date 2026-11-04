@@ -34,7 +34,8 @@ export interface IUserRepository {
     externalId: string,
     tokenHash: string | null,
     expiresAt: Date | null,
-  ): Promise<void>;
+    expectedTokenHash?: string,
+  ): Promise<number>;
 
   createUser(user: User): Promise<User>;
 

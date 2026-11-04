@@ -424,17 +424,22 @@ export class TransporterService implements ITransporterService {
       throw new AppError("Transporter not found", 404);
     }
 
-    await this.transporterRepository.deleteTransporter(externalId);
     const em = this.em.fork();
-    const unifiedUser = await em.findOne(User, {
-      externalId,
-      isDeleted: false,
+    await em.transactional(async (transactionalEm) => {
+      await this.transporterRepository.deleteTransporter(
+        externalId,
+        transactionalEm,
+      );
+      const unifiedUser = await transactionalEm.findOne(User, {
+        externalId,
+        isDeleted: false,
+      });
+      if (unifiedUser) {
+        unifiedUser.isDeleted = true;
+        unifiedUser.deletedAt = new Date();
+        unifiedUser.updatedAt = new Date();
+        await transactionalEm.flush();
+      }
     });
-    if (unifiedUser) {
-      unifiedUser.isDeleted = true;
-      unifiedUser.deletedAt = new Date();
-      unifiedUser.updatedAt = new Date();
-      await em.flush();
-    }
   }
 }
