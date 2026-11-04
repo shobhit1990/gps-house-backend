@@ -27,23 +27,23 @@ import raiseTicketRoutes from "./raiseTicketRoutes";
 import vehicleConfigRoutes from "./vehicleConfigRoutes";
 import certificateAddRoutes from "./certificateAddRoutes";
 import transferCoinRoutes from "./transferCoinRoutes";
-
 import masterRoutes from "./masterRoutes";
+import { authenticateUser } from "../../middlewares/userAuthentication";
 
 const router = express.Router();
 
 router.use("/health", healthRoutes);
+router.use("/user", userRoutes);
 router.use("/owner", ownerRoutes);
 router.use("/client", clientRoutes);
 router.use("/menu", menuRoutes);
 router.use("/transporter", transporterRouter);
-router.use("/vehicle", addVehicleRoutes);
+router.use("/vehicle", authenticateUser, addVehicleRoutes);
 router.use("/paymentDetails", paymentDetailsRoutes);
 router.use("/billingDetail", billingDetailRoutes);
 router.use("/technician", technicianRoutes);
-router.use("/jobsheet", jobsheetRoutes);
+router.use("/jobsheet", authenticateUser, jobsheetRoutes);
 router.use("/addGroup", addGroupRoutes);
-router.use("/user", userRoutes);
 router.use("/deviceType", deviceTypeRoutes);
 router.use("/addInventory", addInventoryRoutes);
 router.use("/vehicleDetail", vehicleDetailRoutes);
@@ -60,8 +60,6 @@ router.use("/raiseTicket", raiseTicketRoutes);
 router.use("/vehicleConfig", vehicleConfigRoutes);
 router.use("/certificateAdd", certificateAddRoutes);
 router.use("/transferCoin", transferCoinRoutes);
-
-//master
 router.use("/master", masterRoutes);
 
 export default router;

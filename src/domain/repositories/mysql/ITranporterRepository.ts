@@ -1,15 +1,17 @@
 import { Transporter } from "../../entities/mysql/Transporter";
+import { User } from "../../entities/mysql/User";
 
 export interface ITransporterRepository {
+  createTransporter(
+    transporter: Transporter,
+    unifiedUser?: User,
+  ): Promise<Transporter>;
 
-    createTransporter(transporter : Transporter): Promise<Transporter>;
+  getTransporter(): Promise<Transporter[]>;
 
-    getTransporter(): Promise<Transporter[]>;
-    
-    getTransporterById(externalId: string): Promise<Transporter | null>;
-    
-    updateTransporter(transporter: Transporter): Promise<Transporter>;
-    
-    deleteTransporter(externalId: string): Promise<void>;
+  getTransporterById(externalId: string): Promise<Transporter | null>;
 
+  updateTransporter(transporter: Transporter): Promise<Transporter>;
+
+  deleteTransporter(externalId: string): Promise<void>;
 }

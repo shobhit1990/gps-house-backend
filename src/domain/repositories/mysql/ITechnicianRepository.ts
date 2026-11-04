@@ -1,4 +1,5 @@
 import { Technician } from "../../entities/mysql/Technician";
+import { User } from "../../entities/mysql/User";
 import { Client } from "../../entities/mysql/Client";
 
 export interface ITechnicianRepository {
@@ -6,7 +7,10 @@ export interface ITechnicianRepository {
 
   getTechnicianById(externalId: string): Promise<Technician | null>;
 
-  createTechnician(technician: Technician): Promise<Technician>;
+  createTechnician(
+    technician: Technician,
+    unifiedUser?: User,
+  ): Promise<Technician>;
 
   updateTechnician(technician: Technician): Promise<Technician>;
 

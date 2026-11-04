@@ -1,0 +1,6 @@
+export enum UserType {
+  USER = "USER",
+  CLIENT = "CLIENT",
+  TRANSPORTER = "TRANSPORTER",
+  TECHNICIAN = "TECHNICIAN",
+}

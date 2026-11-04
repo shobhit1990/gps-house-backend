@@ -3,6 +3,7 @@ import { injectable } from "tsyringe";
 import { Technician } from "../../../../domain/entities/mysql/Technician";
 import { Client } from "../../../../domain/entities/mysql/Client";
 import { TimeZone } from "../../../../domain/entities/mysql/TimeZone";
+import { User } from "../../../../domain/entities/mysql/User";
 import { ITechnicianRepository } from "../../../../domain/repositories/mysql/ITechnicianRepository";
 import { AppError } from "../../../../utils/errors";
 
@@ -16,7 +17,7 @@ export class TechnicianRepository implements ITechnicianRepository {
       .find(
         Technician,
         { isDeleted: false },
-        { populate: ["client", "timezone"]},
+        { populate: ["client", "timezone"] },
       );
   }
 
@@ -30,10 +31,22 @@ export class TechnicianRepository implements ITechnicianRepository {
       );
   }
 
-  async createTechnician(technician: Technician): Promise<Technician> {
+  async createTechnician(
+    technician: Technician,
+    unifiedUser?: User,
+  ): Promise<Technician> {
     const em = this.em.fork();
     technician.client = em.getReference(Client, technician.client.id);
     technician.timezone = em.getReference(TimeZone, technician.timezone.id);
+    if (unifiedUser) {
+      unifiedUser.client = unifiedUser.client
+        ? em.getReference(User, unifiedUser.client.id)
+        : undefined;
+      unifiedUser.timezone = unifiedUser.timezone
+        ? em.getReference(TimeZone, unifiedUser.timezone.id)
+        : undefined;
+      em.persist(unifiedUser);
+    }
     if (technician.createdBy) {
       technician.createdBy = em.getReference(Client, technician.createdBy.id);
     }

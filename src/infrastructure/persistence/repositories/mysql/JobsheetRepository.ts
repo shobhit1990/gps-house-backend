@@ -14,13 +14,11 @@ export class JobsheetRepository implements IJobsheetRepository {
   constructor(private readonly em: EntityManager) {}
 
   async getJobsheets(): Promise<Jobsheet[]> {
-    return this.em
-      .fork()
-      .find(
-        Jobsheet,
-        { isDeleted: false },
-        { populate: [...populatedRelations]},
-      );
+    return this.em.fork().find(
+      Jobsheet,
+      { isDeleted: false },
+      { populate: [...populatedRelations] },
+    );
   }
 
   async getJobsheetById(externalId: string): Promise<Jobsheet | null> {
