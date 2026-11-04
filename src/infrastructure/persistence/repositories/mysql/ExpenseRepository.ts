@@ -25,6 +25,7 @@ export class ExpenseRepository implements IExpenseRepository {
       Expense,
       { isDeleted: false },
       {
+        orderBy: { id: "ASC" },
         populate: [...populate],
         ...(limit !== undefined ? { limit } : {}),
         ...(offset !== undefined ? { offset } : {}),

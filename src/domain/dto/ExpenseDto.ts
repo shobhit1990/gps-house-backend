@@ -66,7 +66,11 @@ export class CreateExpenseDto {
   expenseType!: string;
 
   @Transform(toNumber)
-  @IsNumber({ allowNaN: false, allowInfinity: false })
+  @IsNumber({
+    allowNaN: false,
+    allowInfinity: false,
+    maxDecimalPlaces: 2,
+  })
   @Min(0.01)
   @Max(MAX_EXPENSE_AMOUNT)
   amount!: number;
@@ -148,7 +152,11 @@ export class UpdateExpenseDto {
 
   @ValidateIf((_object, value) => value !== undefined)
   @Transform(toNumber)
-  @IsNumber({ allowNaN: false, allowInfinity: false })
+  @IsNumber({
+    allowNaN: false,
+    allowInfinity: false,
+    maxDecimalPlaces: 2,
+  })
   @Min(0.01)
   @Max(MAX_EXPENSE_AMOUNT)
   amount?: number;

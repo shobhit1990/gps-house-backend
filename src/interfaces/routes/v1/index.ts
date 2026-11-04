@@ -28,6 +28,8 @@ import vehicleConfigRoutes from "./vehicleConfigRoutes";
 import certificateAddRoutes from "./certificateAddRoutes";
 import transferCoinRoutes from "./transferCoinRoutes";
 import masterRoutes from "./masterRoutes";
+
+import authRoutes from "./authRoutes"
 import { authenticateUser } from "../../middlewares/userAuthentication";
 
 const router = express.Router();
@@ -61,5 +63,7 @@ router.use("/vehicleConfig", vehicleConfigRoutes);
 router.use("/certificateAdd", certificateAddRoutes);
 router.use("/transferCoin", transferCoinRoutes);
 router.use("/master", masterRoutes);
+
+router.use("/auth", authRoutes);
 
 export default router;

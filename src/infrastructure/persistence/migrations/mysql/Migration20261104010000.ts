@@ -423,6 +423,12 @@ export class Migration20261104010000 extends Migration {
     sourceTable: string,
     legacyId: number,
   ): Promise<void> {
+    for (const field of ["email", "phone"] as const) {
+      if (typeof record[field] === "string" && record[field].trim() === "") {
+        record[field] = null;
+      }
+    }
+
     const existing = await this.execute(
       "SELECT id FROM users WHERE external_id = ?",
       [record.external_id],
@@ -463,7 +469,9 @@ export class Migration20261104010000 extends Migration {
               .map(({ field }) => field),
           })),
         );
-        return;
+        throw new Error(
+          `Cannot migrate legacy user from ${sourceTable} with legacy ID ${legacyId}: unique-field collision`,
+        );
       }
     }
 
