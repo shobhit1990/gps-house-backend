@@ -47,11 +47,12 @@ export class DeviceController {
     },
   );
 
-  getAvailableInventoryByImei = asyncHandler(
+  getAvailableInventoryByExternalId = asyncHandler(
     async (req: Request, res: Response) => {
-      const inventory = await this.deviceService.getAvailableInventoryByImei(
-        this.getParam(req, "imei", "IMEI"),
-      );
+      const inventory =
+        await this.deviceService.getAvailableInventoryByExternalId(
+          this.getParam(req, "externalId", "inventory ID"),
+        );
       res.status(200).json({
         message: "Inventory item fetched successfully",
         data: inventory,

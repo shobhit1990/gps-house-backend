@@ -34,8 +34,33 @@ export interface ServiceMaintenanceResponse {
   updatedAt: Date;
 }
 
+export interface ServiceMaintenanceBulkUploadError {
+  row: number;
+  column: string;
+  message: string;
+}
+
+export interface ServiceMaintenanceBulkUploadResult {
+  httpStatus: number;
+  success: boolean;
+  message: string;
+  totalRecords: number;
+  insertedRecords: number;
+  duplicateRecords: number;
+  failedRecords: number;
+  errors: ServiceMaintenanceBulkUploadError[];
+}
+
 export interface IServiceMaintenanceService {
   getServiceMaintenances(): Promise<ServiceMaintenanceResponse[]>;
+
+  getServiceMaintenanceExport(): Promise<Buffer>;
+
+  bulkUploadServiceMaintenances(
+    fileName: string,
+    fileBuffer: Buffer,
+    actorUserId?: number,
+  ): Promise<ServiceMaintenanceBulkUploadResult>;
 
   getServiceMaintenanceById(
     externalId: string,

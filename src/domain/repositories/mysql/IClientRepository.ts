@@ -1,16 +1,16 @@
 import { Client } from "../../entities/mysql/Client";
+import { User } from "../../entities/mysql/User";
 
 export interface IClientRepository {
+  getClientByUsername(username: string): Promise<Client | null>;
 
-    getClientByUsername(username: string): Promise<Client | null>;
+  createClient(client: Client, unifiedUser?: User): Promise<Client>;
 
-    createClient(client: Client): Promise<Client>;
+  getClient(): Promise<Client[]>;
 
-    getClient(): Promise<Client[]>;
+  getClientById(externalId: string): Promise<Client | null>;
 
-    getClientById(externalId: string): Promise<Client | null>;
+  updateClient(client: Client): Promise<Client>;
 
-    updateClient(client: Client): Promise<Client>;
-
-    deleteClient(externalId: string): Promise<void>;
+  deleteClient(externalId: string): Promise<void>;
 }

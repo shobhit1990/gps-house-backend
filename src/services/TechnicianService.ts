@@ -7,7 +7,9 @@ import {
 import { Client } from "../domain/entities/mysql/Client";
 import { Technician } from "../domain/entities/mysql/Technician";
 import { TimeZone } from "../domain/entities/mysql/TimeZone";
+import { User } from "../domain/entities/mysql/User";
 import { Status } from "../domain/enums/status";
+import { UserType } from "../domain/enums/UserType";
 import { ITechnicianRepository } from "../domain/repositories/mysql/ITechnicianRepository";
 import { AppError } from "../utils/errors";
 import { hashPassword } from "../utils/passwordHash";
@@ -53,6 +55,14 @@ export class TechnicianService implements ITechnicianService {
       this.findTimezone(payload.timezone),
       this.findActor(actorUserId),
     ]);
+    const unifiedClient = await this.em.fork().findOne(User, {
+      externalId: client.externalId,
+      userType: UserType.CLIENT,
+      isDeleted: false,
+    });
+    if (!unifiedClient) {
+      throw new AppError("Unified Client account not found", 400);
+    }
 
     const technician = new Technician();
     technician.userName = payload.userName.trim();
@@ -68,8 +78,27 @@ export class TechnicianService implements ITechnicianService {
     technician.status = payload.status ?? Status.ACTIVE;
     technician.reason = payload.reason;
 
-    const created =
-      await this.technicianRepository.createTechnician(technician);
+    const user = new User();
+    user.externalId = technician.externalId;
+    user.userName = technician.userName;
+    user.password = technician.password;
+    user.userType = UserType.TECHNICIAN;
+    user.companyName = technician.companyName;
+    user.name = technician.name;
+    user.email = technician.email;
+    user.phone =
+      technician.phone === undefined ? undefined : String(technician.phone);
+    user.address = technician.address;
+    user.companyAddress = technician.address;
+    user.client = unifiedClient;
+    user.timezone = timezone;
+    user.status = technician.status;
+    user.reason = technician.reason;
+
+    const created = await this.technicianRepository.createTechnician(
+      technician,
+      user,
+    );
     return this.toResponse(created);
   }
 
@@ -125,6 +154,42 @@ export class TechnicianService implements ITechnicianService {
 
     const updated =
       await this.technicianRepository.updateTechnician(technician);
+
+    const em = this.em.fork();
+    const unifiedUser = await em.findOne(User, {
+      externalId,
+      isDeleted: false,
+    });
+    if (!unifiedUser) {
+      throw new AppError("Unified Technician account not found", 404);
+    }
+
+    unifiedUser.userName = updated.userName;
+    if (payload.password !== undefined) {
+      unifiedUser.password = updated.password;
+    }
+    unifiedUser.companyName = updated.companyName;
+    unifiedUser.name = updated.name;
+    unifiedUser.email = updated.email;
+    unifiedUser.phone =
+      updated.phone === undefined ? undefined : String(updated.phone);
+    unifiedUser.address = updated.address;
+    unifiedUser.companyAddress = updated.address;
+    unifiedUser.timezone = updated.timezone;
+    unifiedUser.status = updated.status ?? Status.ACTIVE;
+    unifiedUser.reason = updated.reason;
+    unifiedUser.updatedAt = new Date();
+    const clientUser = await em.findOne(User, {
+      externalId: updated.client.externalId,
+      userType: UserType.CLIENT,
+      isDeleted: false,
+    });
+    if (!clientUser) {
+      throw new AppError("Unified Client account not found", 404);
+    }
+    unifiedUser.client = clientUser;
+    await em.flush();
+
     return this.toResponse(updated);
   }
 
@@ -134,6 +199,17 @@ export class TechnicianService implements ITechnicianService {
   ): Promise<void> {
     const actor = await this.findActor(actorUserId);
     await this.technicianRepository.deleteTechnician(externalId, actor);
+    const em = this.em.fork();
+    const unifiedUser = await em.findOne(User, {
+      externalId,
+      isDeleted: false,
+    });
+    if (unifiedUser) {
+      unifiedUser.isDeleted = true;
+      unifiedUser.deletedAt = new Date();
+      unifiedUser.updatedAt = new Date();
+      await em.flush();
+    }
   }
 
   private async findActor(userId?: number): Promise<Client | undefined> {
@@ -217,6 +293,32 @@ export class TechnicianService implements ITechnicianService {
         field,
         message: `${label} already exists`,
       });
+      throw error;
+    }
+
+    const commonConditions = conditions.map((condition) =>
+      "phone" in condition ? { phone: String(condition.phone) } : condition,
+    );
+    const commonUser = await this.em.fork().findOne(User, {
+      $or: commonConditions,
+      isDeleted: false,
+      ...(excludeExternalId ? { externalId: { $ne: excludeExternalId } } : {}),
+    });
+    if (commonUser) {
+      const field =
+        userName && commonUser.userName === userName
+          ? "userName"
+          : email && commonUser.email?.toLowerCase() === email
+            ? "email"
+            : "phone";
+      const label =
+        field === "userName"
+          ? "Username"
+          : field === "email"
+            ? "Email"
+            : "Phone";
+      const error = new AppError(`${label} already exists`, 400);
+      error.errors.push({ field, message: `${label} already exists` });
       throw error;
     }
   }

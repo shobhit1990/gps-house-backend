@@ -5,7 +5,7 @@ import { ITimeZoneRepository } from "../domain/repositories/mysql/ITimeZoneRepos
 @injectable()
 export class TimeZoneService implements ITimeZoneService{
     constructor(
-        @inject("ILanguageRepository")
+        @inject("ITimeZoneRepository")
         private readonly timeZoneRepository: ITimeZoneRepository
     ){}
 

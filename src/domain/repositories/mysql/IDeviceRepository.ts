@@ -11,7 +11,9 @@ export interface IDeviceRepository {
 
   getAvailableInventories(): Promise<AddInventory[]>;
 
-  getAvailableInventoryByImei(imei: string): Promise<AddInventory | null>;
+  getAvailableInventoryByExternalId(
+    externalId: string,
+  ): Promise<AddInventory | null>;
 
   createDevice(device: Device): Promise<Device>;
 

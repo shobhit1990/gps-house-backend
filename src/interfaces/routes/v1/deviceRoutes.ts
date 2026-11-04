@@ -8,7 +8,10 @@ const controller = container.resolve(DeviceController);
 router.get("/getAll", controller.getDevices);
 router.get("/getById/:externalId", controller.getDeviceById);
 router.get("/inventory/available", controller.getAvailableInventories);
-router.get("/inventory/imei/:imei", controller.getAvailableInventoryByImei);
+router.get(
+  "/inventory/imei/:externalId",
+  controller.getAvailableInventoryByExternalId,
+);
 router.post("/", controller.createDevice);
 router.put("/update/:externalId", controller.updateDevice);
 router.delete("/delete/:externalId", controller.deleteDevice);

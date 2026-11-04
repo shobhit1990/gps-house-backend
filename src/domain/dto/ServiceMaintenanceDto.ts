@@ -9,9 +9,14 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Max,
   MaxLength,
+  Min,
 } from "class-validator";
 import { Status } from "../enums/status";
+
+const SQL_INT_MIN = -2147483648;
+const SQL_INT_MAX = 2147483647;
 
 const enumMessage = (name: string, values: object) =>
   `${name} must be one of: ${Object.values(values).join(", ")}`;
@@ -77,6 +82,8 @@ abstract class ServiceMaintenanceFields {
   @IsOptional()
   @Transform(integerOrNull)
   @IsInt()
+  @Min(SQL_INT_MIN)
+  @Max(SQL_INT_MAX)
   daysInterval?: number | null;
 
   @IsOptional()
@@ -112,6 +119,8 @@ abstract class ServiceMaintenanceFields {
   @IsOptional()
   @Transform(integerOrNull)
   @IsInt()
+  @Min(SQL_INT_MIN)
+  @Max(SQL_INT_MAX)
   daysLeft?: number | null;
 
   @IsOptional()

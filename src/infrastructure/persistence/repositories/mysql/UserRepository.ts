@@ -3,34 +3,37 @@ import { injectable } from "tsyringe";
 import { FormError } from "../../../../domain/dto/FormError";
 import { AddGroup } from "../../../../domain/entities/mysql/AddGroup";
 import { Client } from "../../../../domain/entities/mysql/Client";
+import { Language } from "../../../../domain/entities/mysql/Language";
+import { Owner } from "../../../../domain/entities/mysql/Owner";
 import { TimeZone } from "../../../../domain/entities/mysql/TimeZone";
 import { User } from "../../../../domain/entities/mysql/User";
+import { Status } from "../../../../domain/enums/status";
+import { UserType } from "../../../../domain/enums/UserType";
 import { IUserRepository } from "../../../../domain/repositories/mysql/IUserRepository";
 import { AppError } from "../../../../utils/errors";
-import { instanceToPlain } from "class-transformer";
 
 @injectable()
 export class UserRepository implements IUserRepository {
   constructor(private readonly em: EntityManager) {}
 
-async getUsers(): Promise<User[]> {
+  async getUsers(): Promise<User[]> {
     return this.em.fork().find(
-        User,
-        { isDeleted: false },
-        {
-            populate: ["group", "timezone"],
-        },
+      User,
+      { isDeleted: false, userType: UserType.USER },
+      {
+        populate: ["group", "timezone", "owner", "language", "client"],
+      },
     );
-}
+  }
 
   async getUserById(externalId: string): Promise<User | null> {
-    return this.em
-      .fork()
-      .findOne(
-        User,
-        { externalId, isDeleted: false },
-        { populate: ["group", "timezone"] },
-      );
+    return this.em.fork().findOne(
+      User,
+      { externalId, isDeleted: false },
+      {
+        populate: ["group", "timezone", "owner", "language", "client"],
+      },
+    );
   }
 
   async getUserByUsername(
@@ -54,10 +57,91 @@ async getUsers(): Promise<User[]> {
     return this.findByUniqueField("phone", phone, excludeExternalId);
   }
 
+  async getUserForLogin(
+    userName?: string,
+    email?: string,
+    phone?: string,
+  ): Promise<User | null> {
+    return this.em.fork().findOne(
+      User,
+      {
+        ...(userName ? { userName } : email ? { email } : { phone }),
+        isDeleted: false,
+      },
+      {
+        populate: ["owner", "language", "timezone", "client", "group"],
+      },
+    );
+  }
+
+  async getUserForRefreshToken(tokenHash: string): Promise<User | null> {
+    return this.em.fork().findOne(
+      User,
+      {
+        refreshTokenHash: tokenHash,
+        refreshTokenExpiresAt: { $gt: new Date() },
+        isDeleted: false,
+        status: Status.ACTIVE,
+      },
+      {
+        populate: ["owner", "language", "timezone", "client", "group"],
+      },
+    );
+  }
+
+  async updatePasswordHash(
+    externalId: string,
+    passwordHash: string,
+  ): Promise<void> {
+    await this.em
+      .fork()
+      .nativeUpdate(
+        User,
+        { externalId, isDeleted: false },
+        { password: passwordHash, updatedAt: new Date() },
+      );
+  }
+
+  async updateRefreshToken(
+    externalId: string,
+    tokenHash: string | null,
+    expiresAt: Date | null,
+    expectedTokenHash?: string,
+  ): Promise<number> {
+    return this.em.fork().nativeUpdate(
+      User,
+      {
+        externalId,
+        isDeleted: false,
+        ...(expectedTokenHash !== undefined
+          ? { refreshTokenHash: expectedTokenHash }
+          : {}),
+      },
+      {
+        refreshTokenHash: tokenHash,
+        refreshTokenExpiresAt: expiresAt,
+        updatedAt: new Date(),
+      },
+    );
+  }
+
   async createUser(user: User): Promise<User> {
     const em = this.em.fork();
-    user.group = em.getReference(AddGroup, user.group.id);
-    user.timezone = em.getReference(TimeZone, user.timezone.id);
+    if (user.group) {
+      user.group = em.getReference(AddGroup, user.group.id);
+    }
+    if (user.timezone) {
+      user.timezone = em.getReference(TimeZone, user.timezone.id);
+    }
+    if (user.owner) {
+      user.owner = em.getReference(Owner, user.owner.id);
+    }
+    if (user.language) {
+      user.language = em.getReference(Language, user.language.id);
+    }
+    if (user.client) {
+      user.client = em.getReference(User, user.client.id);
+    }
     if (user.createdBy) {
       user.createdBy = em.getReference(Client, user.createdBy.id);
     }
@@ -69,11 +153,17 @@ async getUsers(): Promise<User[]> {
       this.throwDuplicateError(error);
     }
 
-    await em.populate(user, ["group", "timezone"]);
+    await em.populate(user, [
+      "group",
+      "timezone",
+      "owner",
+      "language",
+      "client",
+    ]);
     return user;
   }
 
-  async updateUser(user: User): Promise<User> {
+  async updateUser(user: User, revokeRefreshToken = false): Promise<User> {
     const em = this.em.fork();
     const existing = await em.findOne(
       User,
@@ -88,8 +178,12 @@ async getUsers(): Promise<User[]> {
     em.assign(existing, {
       userName: user.userName,
       password: user.password,
-      group: em.getReference(AddGroup, user.group.id),
-      timezone: em.getReference(TimeZone, user.timezone.id),
+      ...(user.group
+        ? { group: em.getReference(AddGroup, user.group.id) }
+        : {}),
+      ...(user.timezone
+        ? { timezone: em.getReference(TimeZone, user.timezone.id) }
+        : {}),
       companyName: user.companyName,
       contactPersonName: user.contactPersonName,
       email: user.email,
@@ -97,6 +191,12 @@ async getUsers(): Promise<User[]> {
       companyAddress: user.companyAddress,
       dataRestrictionDays: user.dataRestrictionDays,
       isSchoolUser: user.isSchoolUser,
+      userType: user.userType,
+      imeiNumber: user.imeiNumber,
+      sessionVersion: user.sessionVersion,
+      ...(revokeRefreshToken
+        ? { refreshTokenHash: null, refreshTokenExpiresAt: null }
+        : {}),
       status: user.status,
       reason: user.reason,
       ...(user.updatedBy

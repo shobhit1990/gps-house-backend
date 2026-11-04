@@ -4,6 +4,7 @@ import {
   IsEnum,
   IsBoolean,
   IsInt,
+  IsIn,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -13,6 +14,7 @@ import {
   Min,
 } from "class-validator";
 import { Status } from "../enums/status";
+import { UserType } from "../enums/UserType";
 import { IsMobileNumber, IsPassword } from "../validators/UserValidators";
 
 const enumMessage = (name: string, values: object) =>
@@ -95,6 +97,17 @@ export class AddUserDto {
   @Transform(({ value }) => (value === "" ? undefined : value))
   @IsEnum(Status, { message: enumMessage("status", Status) })
   status?: Status;
+
+  @IsOptional()
+  @Transform(({ value }) => (value === "" ? undefined : value))
+  @IsIn([UserType.USER], { message: "userType must be USER" })
+  userType?: UserType;
+
+  @IsOptional()
+  @Transform(trimOptional)
+  @IsString({ message: "imeiNumber must be a string" })
+  @MaxLength(255)
+  imeiNumber?: string;
 
   @IsOptional()
   @Transform(trimOptional)
@@ -193,6 +206,17 @@ export class UpdateUserDto {
   @Transform(({ value }) => (value === "" ? undefined : value))
   @IsEnum(Status, { message: enumMessage("status", Status) })
   status?: Status;
+
+  @IsOptional()
+  @Transform(({ value }) => (value === "" ? undefined : value))
+  @IsEnum(UserType, { message: enumMessage("userType", UserType) })
+  userType?: UserType;
+
+  @IsOptional()
+  @Transform(trimOptional)
+  @IsString({ message: "imeiNumber must be a string" })
+  @MaxLength(255)
+  imeiNumber?: string;
 
   @IsOptional()
   @Transform(trimOptional)

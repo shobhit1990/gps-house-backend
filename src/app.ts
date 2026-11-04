@@ -9,6 +9,7 @@ import { requestLogger } from "./middleware/loggerMiddleware";
 import { injectHeaders } from "./middleware/injectHeaders";
 import { setupCors } from "./configs/cors";
 import { swaggerDocs } from "./configs/swagger";
+import { authenticateUser } from "./interfaces/middlewares/userAuthentication";
 
 dotenv.config();
 
@@ -32,6 +33,7 @@ app.use(
 );
 
 app.use(injectHeaders);
+app.use(["/uploads", "/upload"], authenticateUser);
 app.use(
   "/uploads",
   express.static(path.join(process.cwd(), "public", "uploads")),

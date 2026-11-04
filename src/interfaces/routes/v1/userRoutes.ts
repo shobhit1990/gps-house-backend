@@ -1,10 +1,15 @@
 import { Router } from "express";
 import { container } from "tsyringe";
 import { UserController } from "../../controllers/v1/UserController";
+import { authenticateUser } from "../../middlewares/userAuthentication";
 
 const router = Router();
 const controller = container.resolve(UserController);
 
+router.post("/login", controller.loginUser);
+router.post("/refresh", controller.refreshToken);
+router.post("/logout", controller.logout);
+router.use(authenticateUser);
 router.get("/getAll", controller.getUsers);
 router.get("/getById/:externalId", controller.getUserById);
 router.post("/", controller.addUser);

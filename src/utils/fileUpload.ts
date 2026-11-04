@@ -21,6 +21,15 @@ const storage = multer.diskStorage({
 });
 
 export const upload = multer({ storage });
+export const excelUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024,
+    fields: 0,
+    files: 1,
+    parts: 1,
+  },
+});
 export const imageUpload = multer({
   storage,
   fileFilter(_req, file, callback) {
