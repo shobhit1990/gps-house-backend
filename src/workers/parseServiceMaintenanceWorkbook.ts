@@ -26,10 +26,29 @@ try {
       throw new Error("Worksheet exceeds the supported size");
     }
 
+    let vehicleColumn: number | undefined;
+    for (let column = range.s.c; column <= range.e.c; column++) {
+      const headerCell = sheet[
+        XLSX.utils.encode_cell({ r: range.s.r, c: column })
+      ] as XLSX.CellObject | undefined;
+      const header = String(headerCell?.v ?? "")
+        .trim()
+        .toLowerCase();
+      if (header === "vehicle" || header === "vehicleexternalid") {
+        vehicleColumn = column;
+        break;
+      }
+    }
+
     for (const address of Object.keys(sheet)) {
       if (address.startsWith("!")) continue;
       const cell = sheet[address] as XLSX.CellObject;
-      cells.push([address, cell.v]);
+      const column = XLSX.utils.decode_cell(address).c;
+      const value =
+        column === vehicleColumn && cell.t === "n"
+          ? (cell.w ?? cell.v)
+          : cell.v;
+      cells.push([address, value]);
     }
   }
 

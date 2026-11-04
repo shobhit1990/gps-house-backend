@@ -6,6 +6,16 @@ const WORKBOOK_PROCESS_MEMORY_LIMIT = 512 * 1024 * 1024;
 const MAX_WORKBOOK_RESULT_SIZE = 32 * 1024 * 1024;
 const MAX_WORKBOOK_ERROR_SIZE = 16 * 1024;
 const WORKBOOK_PARSE_TIMEOUT_MS = 60_000;
+const MAX_CONCURRENT_WORKBOOK_PARSERS = 1;
+
+let activeWorkbookParsers = 0;
+
+export class WorkbookParserBusyError extends Error {
+  constructor() {
+    super("Workbook parsing is busy. Please try again later.");
+    this.name = "WorkbookParserBusyError";
+  }
+}
 
 export interface ParsedServiceMaintenanceWorksheet {
   sheetName?: string;
@@ -181,6 +191,10 @@ export function parseServiceMaintenanceWorkbook(
     return Promise.reject(new Error("Windows PowerShell is unavailable"));
   }
 
+  if (activeWorkbookParsers >= MAX_CONCURRENT_WORKBOOK_PARSERS) {
+    return Promise.reject(new WorkbookParserBusyError());
+  }
+
   const config = Buffer.from(
     JSON.stringify({
       executable: process.execPath,
@@ -191,8 +205,9 @@ export function parseServiceMaintenanceWorkbook(
   ).toString("base64");
   const command = WINDOWS_JOB_RUNNER.replace("__CONFIG__", config);
   const encodedCommand = Buffer.from(command, "utf16le").toString("base64");
+  activeWorkbookParsers += 1;
 
-  return new Promise((resolve, reject) => {
+  try {
     const child = spawn(
       powershellPath,
       [
@@ -208,73 +223,90 @@ export function parseServiceMaintenanceWorkbook(
       ],
       { windowsHide: true, stdio: ["pipe", "pipe", "pipe"] },
     );
-    const stdout: Buffer[] = [];
-    const stderr: Buffer[] = [];
-    let stdoutSize = 0;
-    let stderrSize = 0;
-    let settled = false;
-    const timeout = setTimeout(() => {
-      child.kill();
-      finish(new Error("Workbook parsing exceeded the time limit"));
-    }, WORKBOOK_PARSE_TIMEOUT_MS);
 
-    const finish = (
-      error?: Error,
-      worksheet?: ParsedServiceMaintenanceWorksheet,
-    ) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timeout);
-      if (error) reject(error);
-      else if (worksheet) resolve(worksheet);
-      else reject(new Error("Workbook parser returned no worksheet data"));
-    };
+    return new Promise((resolve, reject) => {
+      const stdout: Buffer[] = [];
+      const stderr: Buffer[] = [];
+      let stdoutSize = 0;
+      let stderrSize = 0;
+      let settled = false;
+      let timeout: NodeJS.Timeout | undefined;
 
-    child.stdout.on("data", (chunk: Buffer) => {
-      stdoutSize += chunk.length;
-      if (stdoutSize > MAX_WORKBOOK_RESULT_SIZE) {
-        child.kill();
-        finish(new Error("Parsed worksheet exceeds the supported size"));
-        return;
-      }
-      stdout.push(chunk);
-    });
-    child.stderr.on("data", (chunk: Buffer) => {
-      if (stderrSize >= MAX_WORKBOOK_ERROR_SIZE) return;
-      const limitedChunk = chunk.subarray(
-        0,
-        MAX_WORKBOOK_ERROR_SIZE - stderrSize,
-      );
-      stderrSize += limitedChunk.length;
-      stderr.push(limitedChunk);
-    });
-    child.once("error", (error) => finish(error));
-    child.once("close", (code, signal) => {
-      if (settled) return;
-      if (code !== 0) {
-        const detail = Buffer.concat(stderr).toString("utf8").trim();
-        finish(
-          new Error(
-            detail ||
-              `Workbook parser exited with ${signal ? `signal ${signal}` : `code ${code}`}`,
-          ),
-        );
-        return;
-      }
+      const finish = (
+        error?: Error,
+        worksheet?: ParsedServiceMaintenanceWorksheet,
+      ) => {
+        if (settled) return;
+        settled = true;
+        if (timeout) clearTimeout(timeout);
+        if (error) reject(error);
+        else if (worksheet) resolve(worksheet);
+        else reject(new Error("Workbook parser returned no worksheet data"));
+      };
 
       try {
-        finish(
-          undefined,
-          JSON.parse(
-            Buffer.concat(stdout).toString("utf8"),
-          ) as ParsedServiceMaintenanceWorksheet,
-        );
-      } catch {
-        finish(new Error("Workbook parser returned invalid data"));
+        timeout = setTimeout(() => {
+          child.kill();
+          finish(new Error("Workbook parsing exceeded the time limit"));
+        }, WORKBOOK_PARSE_TIMEOUT_MS);
+
+        child.once("close", (code, signal) => {
+          activeWorkbookParsers -= 1;
+          if (settled) return;
+          if (code !== 0) {
+            const detail = Buffer.concat(stderr).toString("utf8").trim();
+            finish(
+              new Error(
+                detail ||
+                  `Workbook parser exited with ${signal ? `signal ${signal}` : `code ${code}`}`,
+              ),
+            );
+            return;
+          }
+
+          try {
+            finish(
+              undefined,
+              JSON.parse(
+                Buffer.concat(stdout).toString("utf8"),
+              ) as ParsedServiceMaintenanceWorksheet,
+            );
+          } catch {
+            finish(new Error("Workbook parser returned invalid data"));
+          }
+        });
+
+        child.stdout.on("data", (chunk: Buffer) => {
+          stdoutSize += chunk.length;
+          if (stdoutSize > MAX_WORKBOOK_RESULT_SIZE) {
+            child.kill();
+            finish(new Error("Parsed worksheet exceeds the supported size"));
+            return;
+          }
+          stdout.push(chunk);
+        });
+        child.stderr.on("data", (chunk: Buffer) => {
+          if (stderrSize >= MAX_WORKBOOK_ERROR_SIZE) return;
+          const limitedChunk = chunk.subarray(
+            0,
+            MAX_WORKBOOK_ERROR_SIZE - stderrSize,
+          );
+          stderrSize += limitedChunk.length;
+          stderr.push(limitedChunk);
+        });
+        child.once("error", (error) => finish(error));
+
+        child.stdin.on("error", (error) => finish(error));
+        child.stdin.end(fileBuffer.toString("base64"), "utf8");
+      } catch (error) {
+        child.kill();
+        finish(error instanceof Error ? error : new Error(String(error)));
       }
     });
-
-    child.stdin.on("error", (error) => finish(error));
-    child.stdin.end(fileBuffer.toString("base64"), "utf8");
-  });
+  } catch (error) {
+    activeWorkbookParsers -= 1;
+    return Promise.reject(
+      error instanceof Error ? error : new Error(String(error)),
+    );
+  }
 }

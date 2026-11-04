@@ -18,6 +18,7 @@ import { AppError } from "../utils/errors";
 import { getServiceMaintenanceDuplicateKey } from "../utils/serviceMaintenanceDuplicate";
 import {
   ParsedServiceMaintenanceWorksheet,
+  WorkbookParserBusyError,
   parseServiceMaintenanceWorkbook,
 } from "../utils/parseServiceMaintenanceWorkbook";
 import {
@@ -218,6 +219,26 @@ export class ServiceMaintenanceService implements IServiceMaintenanceService {
       }
       parsedWorksheet = await parseServiceMaintenanceWorkbook(fileBuffer);
     } catch (error) {
+      if (error instanceof WorkbookParserBusyError) {
+        return {
+          httpStatus: 503,
+          success: false,
+          message:
+            "Service maintenance upload is busy. Please try again later.",
+          totalRecords: 0,
+          insertedRecords: 0,
+          duplicateRecords: 0,
+          failedRecords: 0,
+          errors: [
+            {
+              row: 1,
+              column: "file",
+              message: error.message,
+            },
+          ],
+        };
+      }
+
       logger.error({
         message: "Unable to parse service maintenance workbook",
         error: error instanceof Error ? error.message : String(error),
