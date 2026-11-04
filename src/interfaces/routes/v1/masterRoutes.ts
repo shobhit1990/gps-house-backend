@@ -17,7 +17,7 @@ router.get("/state", masterController.getMasterStateList);
 
 router.get("/district", masterController.getMasterDistrictList);
 
-router.get("/timeZone", masterController.getMasterLanguageList);
+router.get("/timeZone", masterController.getMasterTimeZoneList);
 
 router.get(
   "/vehicle",

@@ -91,6 +91,10 @@ interface GroupIdColumn {
   COLUMN_DEFAULT: string | null;
 }
 
+interface UsernameColumn {
+  CHARACTER_MAXIMUM_LENGTH: number;
+}
+
 interface UserUniqueCollision {
   id: number;
   user_name_conflict: number | boolean;
@@ -150,6 +154,24 @@ export class Migration20261104010000 extends Migration {
           : ` DEFAULT ${this.quoteIntegerDefault(groupIdColumn.COLUMN_DEFAULT)}`;
       await this.execute(
         `ALTER TABLE users MODIFY COLUMN group_id ${groupIdColumn.COLUMN_TYPE} NULL${defaultClause}`,
+      );
+    }
+
+    const [usernameColumn] = (await this.execute(
+      `SELECT CHARACTER_MAXIMUM_LENGTH
+       FROM information_schema.COLUMNS
+       WHERE TABLE_SCHEMA = DATABASE()
+         AND TABLE_NAME = 'users'
+         AND COLUMN_NAME = 'user_name'`,
+    )) as UsernameColumn[];
+    if (!usernameColumn) {
+      throw new Error(
+        "Cannot migrate legacy users: users.user_name is missing",
+      );
+    }
+    if (usernameColumn.CHARACTER_MAXIMUM_LENGTH < 255) {
+      await this.execute(
+        "ALTER TABLE users MODIFY COLUMN user_name VARCHAR(255) NOT NULL",
       );
     }
 
