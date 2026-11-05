@@ -50,6 +50,12 @@ router.get(
 );
 
 router.get(
+  "/device",
+  //   authorize(MenuName.User, PermissionAction.View),
+  masterController.getMasterDeviceList,
+);
+
+router.get(
   "/expenseType",
   //   authorize(MenuName.User, PermissionAction.View),
   masterController.getMasterExpenseTypeList,
@@ -74,5 +80,11 @@ router.get(
 );
 
 router.get("/alert", masterController.getMasterAlertList);
+
+router.get("/geofType", masterController.getMasterGeofTypeList);
+
+router.get("/geofence", masterController.getMasterGeofenceList);
+
+router.get("/license", masterController.getMasterLicenseList);
 
 export default router;

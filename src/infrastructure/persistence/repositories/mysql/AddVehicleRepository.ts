@@ -1,18 +1,34 @@
 import { EntityManager } from "@mikro-orm/mysql";
 import { injectable } from "tsyringe";
 import { AddVehicle } from "../../../../domain/entities/mysql/AddVehicle";
+import { Device } from "../../../../domain/entities/mysql/Device";
 import { IAddVehicleRepository } from "../../../../domain/repositories/mysql/IAddVehicleRepository";
 import { AppError } from "../../../../utils/errors";
+
+const populate = ["client", "device", "transporter"] as const;
+const detailsPopulate = [
+  "client.owner_name",
+  "client.language",
+  "client.timezone",
+  "device.deviceType",
+  "device.client",
+  "transporter.client",
+  "transporter.language",
+  "transporter.timezone",
+] as const;
 
 @injectable()
 export class AddVehicleRepository implements IAddVehicleRepository {
   constructor(private readonly em: EntityManager) {}
 
   async getAddVehicle(): Promise<AddVehicle[]> {
-    return this.em.fork().find(AddVehicle, { isDeleted: false }, {
-      populate: ["client", "transporter"],
-      orderBy: { createdAt: "DESC" },
-    });
+    return this.em.fork().find(
+      AddVehicle,
+      { isDeleted: false },
+      {
+        populate: [...populate, ...detailsPopulate],
+      },
+    );
   }
 
   async getAddVehicleById(externalId: string): Promise<AddVehicle | null> {
@@ -21,13 +37,17 @@ export class AddVehicleRepository implements IAddVehicleRepository {
       .findOne(
         AddVehicle,
         { externalId, isDeleted: false },
-        { populate: ["client", "transporter"] },
+        { populate: [...populate, ...detailsPopulate] },
       );
   }
 
   async createAddVehicle(vehicle: AddVehicle): Promise<AddVehicle> {
     const em = this.em.fork();
+    if (vehicle.device) {
+      vehicle.device = em.getReference(Device, vehicle.device.id);
+    }
     await em.persistAndFlush(vehicle);
+    await em.populate(vehicle, [...populate]);
     return vehicle;
   }
 
@@ -43,7 +63,11 @@ export class AddVehicleRepository implements IAddVehicleRepository {
     }
 
     em.assign(existing, vehicle);
+    if (vehicle.device) {
+      existing.device = em.getReference(Device, vehicle.device.id);
+    }
     await em.flush();
+    await em.populate(existing, [...populate]);
     return existing;
   }
 

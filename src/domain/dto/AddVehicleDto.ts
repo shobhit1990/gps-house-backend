@@ -6,6 +6,7 @@ import {
     IsNumber,
     IsOptional,
     IsString,
+    IsUUID,
     Matches,
     Min,
 } from "class-validator";
@@ -52,6 +53,7 @@ export class CreateAddVehicleDto {
 
     @IsString()
     @IsNotEmpty()
+    @IsUUID()
     device!: string;
 
     @IsString()
@@ -174,6 +176,7 @@ export class UpdateAddVehicleDto {
 
     @IsOptional()
     @IsString()
+    @IsUUID()
     device?: string;
 
     @IsOptional()

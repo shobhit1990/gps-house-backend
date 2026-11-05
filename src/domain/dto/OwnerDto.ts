@@ -23,7 +23,7 @@ export class UpdateOwnerDto {
 
     @IsOptional()
     @IsEnum(Status)
-    status!: Status
+    status?: Status
 
     @IsOptional()
     @IsString({ message: "Reason must be a string" })
