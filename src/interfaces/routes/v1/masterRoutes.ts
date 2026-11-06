@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { container } from "tsyringe";
 import { MasterController } from "../../controllers/v1/MasterController";
+import { authenticateUser } from "../../middlewares/userAuthentication";
 
 const router = Router();
 const masterController = container.resolve(MasterController);
@@ -81,10 +82,10 @@ router.get(
 
 router.get("/alert", masterController.getMasterAlertList);
 
-router.get("/geofType", masterController.getMasterGeofTypeList);
+router.get("/geofType",authenticateUser, masterController.getMasterGeofTypeList);
 
-router.get("/geofence", masterController.getMasterGeofenceList);
+router.get("/geofence", authenticateUser, masterController.getMasterGeofenceList);
 
-router.get("/license", masterController.getMasterLicenseList);
+router.get("/license", authenticateUser, masterController.getMasterLicenseList);
 
 export default router;

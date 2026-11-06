@@ -34,6 +34,7 @@ import licenseRoutes from "./licenseRoutes";
 import driverDetailRoutes from "./driverDetailRoutes";
 
 import authRoutes from "./authRoutes";
+import { authenticateUser } from "../../middlewares/userAuthentication";
 
 const router = express.Router();
 
@@ -43,7 +44,7 @@ router.use("/owner", ownerRoutes);
 router.use("/client", clientRoutes);
 router.use("/menu", menuRoutes);
 router.use("/transporter", transporterRouter);
-router.use("/vehicle", addVehicleRoutes);
+router.use("/vehicle",addVehicleRoutes);
 router.use("/paymentDetails", paymentDetailsRoutes);
 router.use("/billingDetail", billingDetailRoutes);
 router.use("/technician", technicianRoutes);
