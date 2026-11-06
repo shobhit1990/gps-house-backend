@@ -38,6 +38,10 @@ import { registerVehicleConfigDependencies } from "./mysql/vehicleConfig-contain
 import { registerMasterLocationDependencies } from "./mysql/masterLocation-container";
 import { registerCertificateAddDependencies } from "./mysql/certificateAdd-container";
 import { registerTransferCoinDependencies } from "./mysql/transferCoin-container";
+import { registerGeofTypeDependencies } from "./mysql/geofType-container";
+import { registerGeofenceDependencies } from "./mysql/geofence-container";
+import { registerLicenseDependencies } from "./mysql/license-container";
+import { registerDriverDetailDependencies } from "./mysql/driverDetail-container";
 
 export async function initializeApp() {
   try {
@@ -73,6 +77,10 @@ export async function initializeApp() {
     registerMasterLocationDependencies();
     registerCertificateAddDependencies();
     registerTransferCoinDependencies();
+    registerGeofTypeDependencies();
+    registerGeofenceDependencies();
+    registerLicenseDependencies();
+    registerDriverDetailDependencies();
 
     const orm = await initializeORM();
 

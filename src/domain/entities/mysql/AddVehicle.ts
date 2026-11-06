@@ -1,14 +1,15 @@
 import {
-    Entity,
-    Enum,
-    Index,
-    ManyToOne,
-    PrimaryKey,
-    Property,
+  Entity,
+  Enum,
+  Index,
+  ManyToOne,
+  PrimaryKey,
+  Property,
 } from "@mikro-orm/core";
 import { Exclude, Expose } from "class-transformer";
 import { v4 as uuidv4 } from "uuid";
 import { Client } from "./Client";
+import { Device } from "./Device";
 import { Transporter } from "./Transporter";
 import { FuelType } from "../../enums/FuelType";
 import { Hours } from "../../enums/Hours";
@@ -20,122 +21,123 @@ import { Status } from "../../enums/status";
 
 @Entity({ tableName: "add_vehicle" })
 export class AddVehicle {
-    @Exclude()
-    @PrimaryKey({ autoincrement: true, type: "int", unsigned: false })
-    id!: number;
+  @Exclude()
+  @PrimaryKey({ autoincrement: true, type: "int", unsigned: false })
+  id!: number;
 
-    @Expose({ name: "id" })
-    @Property({ unique: true })
-    @Index()
-    externalId: string = uuidv4();
+  @Expose({ name: "id" })
+  @Property({ unique: true })
+  @Index()
+  externalId: string = uuidv4();
 
-    @Property({ nullable: false })
-    vehicle!: string;
+  @Property({ nullable: false })
+  vehicle!: string;
 
-    @Property({ type: "double", nullable: false })
-    mileage!: number;
+  @Property({ type: "double", nullable: false })
+  mileage!: number;
 
-    @Enum(() => VehicleType)
-    vehicleType!: VehicleType;
+  @Enum(() => VehicleType)
+  vehicleType!: VehicleType;
 
-    @Property({ type: "double", nullable: false })
-    overspeed!: number;
+  @Property({ type: "double", nullable: false })
+  overspeed!: number;
 
-    @Enum({ items: () => Hours, nullable: true })
-    hours?: Hours;
+  @Enum({ items: () => Hours, nullable: true })
+  hours?: Hours;
 
-    @Enum({ items: () => Minutes, nullable: true })
-    minutes?: Minutes;
+  @Enum({ items: () => Minutes, nullable: true })
+  minutes?: Minutes;
 
-    @Expose()
-    @ManyToOne(() => Client, { fieldName: "client", nullable: false })
-    client!: Client;
+  @Expose()
+  @ManyToOne(() => Client, { fieldName: "client", nullable: false })
+  client!: Client;
 
-    @Property({ nullable: false })
-    device!: string;
+  @Expose()
+  @ManyToOne(() => Device, { fieldName: "device", nullable: true })
+  device!: Device | null;
 
-    @Expose()
-    @ManyToOne(() => Transporter, { fieldName: "transporter", nullable: false })
-    transporter!: Transporter;
+  @Expose()
+  @ManyToOne(() => Transporter, { fieldName: "transporter", nullable: false })
+  transporter!: Transporter;
 
-    @Property({ type: "date", nullable: false })
-    subscriptionStartDate!: Date;
+  @Property({ type: "date", nullable: false })
+  subscriptionStartDate!: Date;
 
-    @Property({ type: "date", nullable: false })
-    subscriptionDueDate!: Date;
+  @Property({ type: "date", nullable: false })
+  subscriptionDueDate!: Date;
 
-    @Enum({ items: () => FuelType, nullable: true })
-    fuelType?: FuelType;
+  @Enum({ items: () => FuelType, nullable: true })
+  fuelType?: FuelType;
 
-    @Property({ type: "double", nullable: true })
-    currentOdometerReading?: number;
+  @Property({ type: "double", nullable: true })
+  currentOdometerReading?: number;
 
-    @Property({ nullable: true })
-    vehicleNickname?: string;
+  @Property({ nullable: true })
+  vehicleNickname?: string;
 
-    @Property({ nullable: true })
-    remark?: string;
+  @Property({ nullable: true })
+  remark?: string;
 
-    @Property({ type: "double", nullable: true })
-    durationOdometer?: number;
+  @Property({ type: "double", nullable: true })
+  durationOdometer?: number;
 
-    @Property({ nullable: true })
-    remark2?: string;
+  @Property({ nullable: true })
+  remark2?: string;
 
-    @Property({ nullable: false, default: false })
-    parkingViolationAlarmOnIgnitionOn: boolean = false;
+  @Property({ nullable: false, default: false })
+  parkingViolationAlarmOnIgnitionOn: boolean = false;
 
-    @Property({ nullable: true })
-    ownerName?: string;
+  @Property({ nullable: true })
+  ownerName?: string;
 
-    @Enum({ items: () => OwnerdBy, nullable: true })
-    ownedBy?: OwnerdBy;
+  @Enum({ items: () => OwnerdBy, nullable: true })
+  ownedBy?: OwnerdBy;
 
-    @Property({ nullable: true })
-    vehicleBrand?: string;
+  @Property({ nullable: true })
+  vehicleBrand?: string;
 
-    @Property({ nullable: true })
-    vehicleModel?: string;
+  @Property({ nullable: true })
+  vehicleModel?: string;
 
-    @Enum({ items: () => VehicleBodyType, nullable: true })
-    vehicleBody?: VehicleBodyType;
+  @Enum({ items: () => VehicleBodyType, nullable: true })
+  vehicleBody?: VehicleBodyType;
 
-    @Property({ type: "double", nullable: true })
-    capacity?: number;
+  @Property({ type: "double", nullable: true })
+  capacity?: number;
 
-    @Property({ type: "date", nullable: true })
-    manufactureDate?: Date;
+  @Property({ type: "date", nullable: true })
+  manufactureDate?: Date;
 
-    @Property({ type: "date", nullable: true })
-    purchaseDate?: Date;
+  @Property({ type: "date", nullable: true })
+  purchaseDate?: Date;
 
-    @Enum({ items: () => Status, nullable: true })
-    status?: Status;
+  @Enum({ items: () => Status, nullable: true })
+  status?: Status;
 
-    @Property({ nullable: true })
-    reason?: string;
+  @Property({ nullable: true })
+  reason?: string;
 
-    @Exclude()
-    @Property({ default: false })
-    isDeleted: boolean = false;
+  @Exclude()
+  @Property({ default: false })
+  isDeleted: boolean = false;
 
-    @Exclude()
-    @Property({ onCreate: () => new Date() })
-    createdAt: Date = new Date();
+  @Exclude()
+  @Property({ onCreate: () => new Date() })
+  createdAt: Date = new Date();
 
-    @Exclude()
-    @Property({ onUpdate: () => new Date() })
-    updatedAt: Date = new Date();
+  @Exclude()
+  @Property({ onUpdate: () => new Date() })
+  updatedAt: Date = new Date();
 
-    @Exclude()
-    @ManyToOne(() => Client, { nullable: true })
-    createdBy?: Client;
+  @Exclude()
+  @ManyToOne(() => Client, { nullable: true })
+  createdBy?: Client;
 
-    @Exclude()
-    @ManyToOne(() => Client, { nullable: true })
-    updatedBy?: Client;
+  @Exclude()
+  @ManyToOne(() => Client, { nullable: true })
+  updatedBy?: Client;
 
-    @Exclude()
-    @ManyToOne(() => Client, { nullable: true })
-    deletedBy?: Client;
+  @Exclude()
+  @ManyToOne(() => Client, { nullable: true })
+  deletedBy?: Client;
 }
