@@ -100,13 +100,16 @@ export class AddVehicleService implements IAddVehicleService {
       throw new AppError("Client not found", 404);
     }
 
-    const device = payload.device
-      ? await em.findOne(Device, {
-          externalId: payload.device,
-          isDeleted: false,
-        })
-      : existing.device;
-    if (payload.device && !device) {
+    const device =
+      payload.device === undefined
+        ? existing.device
+        : payload.device === null
+          ? null
+          : await em.findOne(Device, {
+              externalId: payload.device,
+              isDeleted: false,
+            });
+    if (typeof payload.device === "string" && !device) {
       throw new AppError("Device not found", 404);
     }
 
@@ -246,40 +249,43 @@ export class AddVehicleService implements IAddVehicleService {
             name: vehicle.client.name,
             companyName: vehicle.client.companyName,
           },
-      device: vehicle.device
-        ? includeRelationshipDetails
-          ? {
-              id: vehicle.device.externalId,
-              imei: vehicle.device.imei,
-              simNumber: vehicle.device.simNumber,
-              simOperator: vehicle.device.simOperator,
-              secondarySimNumber: vehicle.device.secondarySimNumber ?? null,
-              secondarySimOperator: vehicle.device.secondarySimOperator ?? null,
-              deviceType: {
-                id: vehicle.device.deviceType.externalId,
-                deviceName: vehicle.device.deviceType.deviceName,
-              },
-              client: {
-                id: vehicle.device.client.externalId,
-                name: vehicle.device.client.name ?? null,
-                companyName: vehicle.device.client.companyName,
-              },
-              status: vehicle.device.status,
-              reason: vehicle.device.reason ?? null,
-              ignitionWireConnected: vehicle.device.ignitionWireConnected,
-              ignitionWireNotConnected: vehicle.device.ignitionWireNotConnected,
-              airConditionWireConnected:
-                vehicle.device.airConditionWireConnected,
-              attendance: vehicle.device.attendance,
-              timezoneSetting: vehicle.device.timezoneSetting,
-              createdAt: vehicle.device.createdAt,
-              updatedAt: vehicle.device.updatedAt,
-            }
-          : {
-              id: vehicle.device.externalId,
-              imei: vehicle.device.imei,
-            }
-        : null,
+      device:
+        vehicle.device && !vehicle.device.isDeleted
+          ? includeRelationshipDetails
+            ? {
+                id: vehicle.device.externalId,
+                imei: vehicle.device.imei,
+                simNumber: vehicle.device.simNumber,
+                simOperator: vehicle.device.simOperator,
+                secondarySimNumber: vehicle.device.secondarySimNumber ?? null,
+                secondarySimOperator:
+                  vehicle.device.secondarySimOperator ?? null,
+                deviceType: {
+                  id: vehicle.device.deviceType.externalId,
+                  deviceName: vehicle.device.deviceType.deviceName,
+                },
+                client: {
+                  id: vehicle.device.client.externalId,
+                  name: vehicle.device.client.name ?? null,
+                  companyName: vehicle.device.client.companyName,
+                },
+                status: vehicle.device.status,
+                reason: vehicle.device.reason ?? null,
+                ignitionWireConnected: vehicle.device.ignitionWireConnected,
+                ignitionWireNotConnected:
+                  vehicle.device.ignitionWireNotConnected,
+                airConditionWireConnected:
+                  vehicle.device.airConditionWireConnected,
+                attendance: vehicle.device.attendance,
+                timezoneSetting: vehicle.device.timezoneSetting,
+                createdAt: vehicle.device.createdAt,
+                updatedAt: vehicle.device.updatedAt,
+              }
+            : {
+                id: vehicle.device.externalId,
+                imei: vehicle.device.imei,
+              }
+          : null,
       transporter: includeRelationshipDetails
         ? {
             id: vehicle.transporter.externalId,

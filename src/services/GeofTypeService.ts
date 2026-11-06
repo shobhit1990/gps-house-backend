@@ -69,6 +69,12 @@ export class GeofTypeService implements IGeofTypeService {
         if (payload.geofType !== undefined) {
             geofType.geofType = payload.geofType;
         }
+        if (payload.status !== undefined) {
+            geofType.status = payload.status;
+        }
+        if (payload.reason !== undefined) {
+            geofType.reason = payload.reason;
+        }
 
         geofType.updatedAt = new Date();
 

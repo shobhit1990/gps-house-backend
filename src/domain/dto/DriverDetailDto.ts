@@ -27,33 +27,21 @@ class DriverDetailFields {
   @Transform(trimString)
   transporter?: string | null;
 
-  @ValidateIf((_object, value) => value !== undefined)
-  @IsString()
-  @IsNotEmpty()
-  @Transform(trimString)
-  firstName?: string;
-
-  @ValidateIf((_object, value) => value !== undefined)
-  @IsString()
-  @IsNotEmpty()
-  @Transform(trimString)
-  lastName?: string;
-
   @IsOptional()
   @IsString()
   @Transform(trimString)
   deviceId?: string | null;
 
   @IsOptional()
-  @IsDateString()
+  @IsDateString({ strict: true })
   dateOfJoining?: string | null;
 
   @IsOptional()
-  @IsDateString()
+  @IsDateString({ strict: true })
   dateOfLeaving?: string | null;
 
   @IsOptional()
-  @IsDateString()
+  @IsDateString({ strict: true })
   dateOfBirth?: string | null;
 
   @IsOptional()
@@ -82,11 +70,11 @@ class DriverDetailFields {
   licenseToDrive?: string[];
 
   @IsOptional()
-  @IsDateString()
+  @IsDateString({ strict: true })
   licenseIssueDate?: string | null;
 
   @IsOptional()
-  @IsDateString()
+  @IsDateString({ strict: true })
   licenseExpiryDate?: string | null;
 
   @IsOptional()
@@ -95,7 +83,7 @@ class DriverDetailFields {
   lifeInsuranceNumber?: string | null;
 
   @IsOptional()
-  @IsDateString()
+  @IsDateString({ strict: true })
   lifeInsuranceExpiryDate?: string | null;
 
   @IsOptional()
@@ -104,7 +92,7 @@ class DriverDetailFields {
   mediclaimNumber?: string | null;
 
   @IsOptional()
-  @IsDateString()
+  @IsDateString({ strict: true })
   mediclaimExpiryDate?: string | null;
 
   @IsOptional()
@@ -162,11 +150,13 @@ export class CreateDriverDetailDto extends DriverDetailFields {
 
   @IsString()
   @IsNotEmpty({ message: "firstName is required" })
+  @MaxLength(255)
   @Transform(trimString)
   declare firstName: string;
 
   @IsString()
   @IsNotEmpty({ message: "lastName is required" })
+  @MaxLength(255)
   @Transform(trimString)
   declare lastName: string;
 }
@@ -178,6 +168,17 @@ export class UpdateDriverDetailDto extends DriverDetailFields {
   @Transform(trimString)
   client?: string;
 
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(255)
+  @Transform(trimString)
   declare firstName?: string;
+
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(255)
+  @Transform(trimString)
   declare lastName?: string;
 }

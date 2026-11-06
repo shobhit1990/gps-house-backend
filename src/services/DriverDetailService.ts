@@ -280,10 +280,13 @@ export class DriverDetailService implements IDriverDetailService {
       salary: detail.salary ?? null,
       phoneNumber: detail.phoneNumber ?? null,
       licenseNumber: detail.licenseNumber ?? null,
-      licenseToDrive: detail.licenseToDrive.getItems().map((license) => ({
-        id: license.externalId,
-        license: license.license,
-      })),
+      licenseToDrive: detail.licenseToDrive
+        .getItems()
+        .filter((license) => !license.isDeleted)
+        .map((license) => ({
+          id: license.externalId,
+          license: license.license,
+        })),
       licenseIssueDate: detail.licenseIssueDate ?? null,
       licenseExpiryDate: detail.licenseExpiryDate ?? null,
       lifeInsuranceNumber: detail.lifeInsuranceNumber ?? null,

@@ -53,6 +53,7 @@ export class GeofenceRepository implements IGeofenceRepository {
       assignType: geofence.assignType,
       geofenceCode: geofence.geofenceCode,
       transitTime: geofence.transitTime,
+      shapes: geofence.shapes,
       latitude: geofence.latitude,
       longitude: geofence.longitude,
       status: geofence.status,

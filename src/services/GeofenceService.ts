@@ -53,6 +53,7 @@ export class GeofenceService implements IGeofenceService {
     geofence.assignType = payload.assignType;
     geofence.geofenceCode = payload.geofenceCode;
     geofence.transitTime = payload.transitTime;
+    geofence.shapes = payload.shapes;
     geofence.latitude = [...payload.latitude];
     geofence.longitude = [...payload.longitude];
     geofence.status = payload.status ?? Status.ACTIVE;
@@ -88,11 +89,14 @@ export class GeofenceService implements IGeofenceService {
     if (payload.assignType !== undefined) {
       geofence.assignType = payload.assignType;
     }
-    if (payload.geofenceCode !== undefined && payload.geofenceCode !== null) {
+    if (payload.geofenceCode !== undefined) {
       geofence.geofenceCode = payload.geofenceCode;
     }
-    if (payload.transitTime !== undefined && payload.transitTime !== null) {
+    if (payload.transitTime !== undefined) {
       geofence.transitTime = payload.transitTime;
+    }
+    if (payload.shapes !== undefined) {
+      geofence.shapes = payload.shapes;
     }
     if (payload.latitude !== undefined) {
       geofence.latitude = [...payload.latitude];
@@ -179,6 +183,7 @@ export class GeofenceService implements IGeofenceService {
       assignType: geofence.assignType,
       geofenceCode: geofence.geofenceCode ?? null,
       transitTime: geofence.transitTime ?? null,
+      shapes: geofence.shapes ?? null,
       latitude: geofence.latitude,
       longitude: geofence.longitude,
       status: geofence.status ?? null,

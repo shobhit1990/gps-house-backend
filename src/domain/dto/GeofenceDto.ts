@@ -10,10 +10,10 @@ import {
   MaxLength,
   ValidateIf,
 } from "class-validator";
-import { AssignType } from "../enums/AssignType";
 import { Status } from "../enums/status";
 import { TransitTime } from "../enums/TransitTime";
 import { GeofAssignType } from "../enums/GeofAssignType";
+import { Shapes } from "../enums/Shapes";
 
 const enumMessage = (name: string, values: object) =>
   `${name} must be one of: ${Object.values(values).join(", ")}`;
@@ -44,6 +44,9 @@ export class CreateGeofenceDto {
     message: enumMessage("transitTime", TransitTime),
   })
   transitTime?: TransitTime;
+
+  @IsEnum(Shapes, { message: enumMessage("shapes", Shapes) })
+  shapes!: Shapes;
 
   @IsArray()
   @ArrayNotEmpty()
@@ -86,13 +89,17 @@ export class UpdateGeofenceDto {
   @IsOptional()
   @IsString()
   @MaxLength(255)
-  geofenceCode?: string;
+  geofenceCode?: string | null;
 
   @IsOptional()
   @IsEnum(TransitTime, {
     message: enumMessage("transitTime", TransitTime),
   })
-  transitTime?: TransitTime;
+  transitTime?: TransitTime | null;
+
+  @IsOptional()
+  @IsEnum(Shapes, { message: enumMessage("shapes", Shapes) })
+  shapes?: Shapes;
 
   @IsOptional()
   @IsArray()

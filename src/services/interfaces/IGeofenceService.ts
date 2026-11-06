@@ -5,6 +5,7 @@ import {
 import { GeofAssignType } from "../../domain/enums/GeofAssignType";
 import { Status } from "../../domain/enums/status";
 import { TransitTime } from "../../domain/enums/TransitTime";
+import { Shapes } from "../../domain/enums/Shapes";
 
 export interface GeofenceResponse {
   id: string;
@@ -16,6 +17,7 @@ export interface GeofenceResponse {
   assignType: GeofAssignType;
   geofenceCode: string | null;
   transitTime: TransitTime | null;
+  shapes: Shapes | null;
   latitude: number[];
   longitude: number[];
   status: Status | null;

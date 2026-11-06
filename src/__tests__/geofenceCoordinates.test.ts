@@ -61,6 +61,7 @@ const createPayload = (latitude: number[], longitude: number[]) =>
     name: "Test geofence",
     type: "type-id",
     assignType: "client",
+    shapes: "polygon",
     latitude,
     longitude,
   });
@@ -82,6 +83,60 @@ describe("Geofence coordinate arrays", () => {
     expect(result.latitude).toEqual(latitude);
     expect(result.longitude).toEqual(longitude);
     expect(repository.createGeofence).toHaveBeenCalledTimes(1);
+  });
+
+  test("create requires a supported shapes enum value", async () => {
+    const { service, repository } = makeService();
+    const missingShapes = plainToInstance(CreateGeofenceDto, {
+      name: "Test geofence",
+      type: "type-id",
+      assignType: "client",
+      latitude: [10],
+      longitude: [20],
+    });
+    expect(await validate(missingShapes)).not.toEqual([]);
+
+    const invalidShapes = plainToInstance(CreateGeofenceDto, {
+      name: "Test geofence",
+      type: "type-id",
+      assignType: "client",
+      shapes: "circle",
+      latitude: [10],
+      longitude: [20],
+    });
+    expect(await validate(invalidShapes)).not.toEqual([]);
+    expect(repository.createGeofence).not.toHaveBeenCalled();
+
+    const dto = createPayload([10], [20]);
+    const result = await service.createGeofence(dto);
+    expect(result.shapes).toBe("polygon");
+  });
+
+  test("update accepts a supported shapes value", async () => {
+    const { service, repository } = makeService();
+    const dto = plainToInstance(UpdateGeofenceDto, { shapes: "rectangle" });
+    expect(await validate(dto)).toEqual([]);
+
+    const result = await service.updateGeofence("geofence-id", dto);
+    expect(result.shapes).toBe("rectangle");
+    expect(repository.updateGeofence).toHaveBeenCalledTimes(1);
+  });
+
+  test("update clears geofenceCode and transitTime when passed null", async () => {
+    const { service, repository, geofence } = makeService();
+    geofence.geofenceCode = "existing-code";
+    geofence.transitTime = 3;
+    const dto = plainToInstance(UpdateGeofenceDto, {
+      geofenceCode: null,
+      transitTime: null,
+    });
+
+    expect(await validate(dto)).toEqual([]);
+    const result = await service.updateGeofence("geofence-id", dto);
+
+    expect(result.geofenceCode).toBeNull();
+    expect(result.transitTime).toBeNull();
+    expect(repository.updateGeofence).toHaveBeenCalledTimes(1);
   });
 
   test.each([

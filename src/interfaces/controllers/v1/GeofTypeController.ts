@@ -47,7 +47,7 @@ export class GeofTypeController {
 
     createGeofType = asyncHandler(async (req: CustomRequest, res: Response) => {
         const body = normalizeUserRequestBody(req);
-        const dto = plainToClass(CreatGeofTypeDto, body, { enableImplicitConversion: true });
+        const dto = plainToClass(CreatGeofTypeDto, body);
         const validationErrors = await validate(dto, { whitelist: true });
 
         if (validationErrors.length > 0) {
@@ -75,7 +75,7 @@ export class GeofTypeController {
         }
 
         const body = normalizeUserRequestBody(req);
-        const dto = plainToClass(UpdateGeofTypeDto, body, { enableImplicitConversion: true });
+        const dto = plainToClass(UpdateGeofTypeDto, body);
         const validationErrors = await validate(dto, { whitelist: true });
 
         if (validationErrors.length > 0) {

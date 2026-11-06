@@ -131,6 +131,90 @@ const relationCases = [
 ];
 
 describe("DriverDetail ManyToMany relation inputs", () => {
+  test.each([
+    "dateOfJoining",
+    "dateOfLeaving",
+    "dateOfBirth",
+    "licenseIssueDate",
+    "licenseExpiryDate",
+    "lifeInsuranceExpiryDate",
+    "mediclaimExpiryDate",
+  ])(
+    "%s rejects invalid calendar dates and remains optional",
+    async (field) => {
+      const omittedDate = plainToInstance(UpdateDriverDetailDto, {});
+      expect(await validate(omittedDate)).toEqual([]);
+
+      const invalidDate = plainToInstance(UpdateDriverDetailDto, {
+        [field]: "2024-02-30",
+      });
+      expect(
+        (await validate(invalidDate)).map(({ property }) => property),
+      ).toContain(field);
+    },
+  );
+
+  test.each([
+    ["firstName", { lastName: "Driver" }],
+    ["lastName", { firstName: "Test" }],
+  ])("create requires %s", async (_field, names) => {
+    const dto = plainToInstance(CreateDriverDetailDto, {
+      client: "client-id",
+      ...names,
+    });
+
+    const errors = await validate(dto, {
+      whitelist: true,
+      forbidNonWhitelisted: true,
+    });
+    expect(errors.map(({ property }) => property)).toContain(_field);
+  });
+
+  test("create rejects empty first and last names", async () => {
+    const dto = plainToInstance(CreateDriverDetailDto, {
+      client: "client-id",
+      firstName: " ",
+      lastName: "",
+    });
+
+    const errors = await validate(dto);
+    expect(errors.map(({ property }) => property)).toEqual(
+      expect.arrayContaining(["firstName", "lastName"]),
+    );
+  });
+
+  test("update allows omitted names and validates provided names", async () => {
+    const omittedNames = plainToInstance(UpdateDriverDetailDto, {});
+    expect(
+      await validate(omittedNames, {
+        whitelist: true,
+        forbidNonWhitelisted: true,
+      }),
+    ).toEqual([]);
+
+    const emptyName = plainToInstance(UpdateDriverDetailDto, {
+      firstName: "",
+    });
+    expect(
+      (await validate(emptyName)).map(({ property }) => property),
+    ).toContain("firstName");
+  });
+
+  test("driver detail response omits soft-deleted licenses", async () => {
+    const { service, detail } = makeService();
+    const activeLicense = makeLicense("license-1");
+    const deletedLicense = Object.assign(makeLicense("license-2"), {
+      isDeleted: true,
+    });
+    detail.licenseToDrive.set([activeLicense, deletedLicense]);
+
+    const [response] = await service.getDriverDetails();
+
+    expect(response.licenseToDrive).toEqual([
+      { id: activeLicense.externalId, license: activeLicense.license },
+    ]);
+  });
+
   test.each(relationCases)("create accepts $name", async (relations) => {
     const { service, repository } = makeService();
     const dto = plainToInstance(CreateDriverDetailDto, {

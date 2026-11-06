@@ -31,17 +31,20 @@ export class GeofTypeRepository implements IGeofTypeRepository {
 
     async updateGeofType(geofType: GeofType): Promise<GeofType> {
         const emFork = this.em.fork();
-        const existing = await emFork.findOne(GeofType, { id: geofType.id });
+
+        const existing = await emFork.findOne(GeofType, {
+            id: geofType.id,
+            isDeleted: false,
+        });
+
         if (!existing) {
-            throw new AppError("role not found", 404);
+            throw new AppError("GeofType not found", 404);
         }
 
         existing.geofType = geofType.geofType;
         existing.reason = geofType.reason;
         existing.status = geofType.status;
         existing.updatedAt = geofType.updatedAt;
-        existing.isDeleted = geofType.isDeleted;
-        existing.deletedAt = geofType.deletedAt;
 
         await emFork.flush();
         return existing;
