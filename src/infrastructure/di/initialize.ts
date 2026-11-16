@@ -110,6 +110,7 @@ export async function initializeORM(): Promise<{
     const mySqlOrm = await MikroORM.init<MySqlDriver>(mysqlConfig);
     const schemaGenerator = mySqlOrm.getSchemaGenerator();
     await schemaGenerator.ensureDatabase();
+    await mySqlOrm.getMigrator().up();
     await schemaGenerator.updateSchema();
     logger.info("MySQL MikroORM initialized successfully");
 

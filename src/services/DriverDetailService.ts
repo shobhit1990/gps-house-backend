@@ -201,7 +201,9 @@ export class DriverDetailService implements IDriverDetailService {
   ): void {
     if (payload.firstName !== undefined) detail.firstName = payload.firstName;
     if (payload.lastName !== undefined) detail.lastName = payload.lastName;
-    if (payload.deviceId !== undefined) detail.deviceId = payload.deviceId;
+    if (payload.deviceId !== undefined) {
+      detail.deviceId = payload.deviceId;
+    }
     if (payload.dateOfJoining !== undefined) {
       detail.dateOfJoining = this.toDate(payload.dateOfJoining);
     }

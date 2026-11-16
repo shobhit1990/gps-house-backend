@@ -27,20 +27,20 @@ class DriverDetailFields {
   @Transform(trimString)
   transporter?: string | null;
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined && value !== null)
   @IsString()
   @Transform(trimString)
   deviceId?: string | null;
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined && value !== null)
   @IsDateString({ strict: true })
   dateOfJoining?: string | null;
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined && value !== null)
   @IsDateString({ strict: true })
   dateOfLeaving?: string | null;
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined && value !== null)
   @IsDateString({ strict: true })
   dateOfBirth?: string | null;
 
@@ -69,11 +69,11 @@ class DriverDetailFields {
   @IsString({ each: true })
   licenseToDrive?: string[];
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined && value !== null)
   @IsDateString({ strict: true })
   licenseIssueDate?: string | null;
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined && value !== null)
   @IsDateString({ strict: true })
   licenseExpiryDate?: string | null;
 
@@ -82,7 +82,7 @@ class DriverDetailFields {
   @Transform(trimString)
   lifeInsuranceNumber?: string | null;
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined && value !== null)
   @IsDateString({ strict: true })
   lifeInsuranceExpiryDate?: string | null;
 
@@ -91,7 +91,7 @@ class DriverDetailFields {
   @Transform(trimString)
   mediclaimNumber?: string | null;
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined && value !== null)
   @IsDateString({ strict: true })
   mediclaimExpiryDate?: string | null;
 

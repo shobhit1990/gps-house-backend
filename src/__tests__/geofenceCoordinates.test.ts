@@ -10,6 +10,7 @@ import { Client } from "../domain/entities/mysql/Client";
 import { Geofence } from "../domain/entities/mysql/Geofence";
 import { GeofType } from "../domain/entities/mysql/GeofType";
 import { User } from "../domain/entities/mysql/User";
+import { Shapes } from "../domain/enums/Shapes";
 import { Status } from "../domain/enums/status";
 import { IGeofenceRepository } from "../domain/repositories/mysql/IGeofenceRepository";
 import { GeofenceService } from "../services/GeofenceService";
@@ -88,6 +89,16 @@ describe("Geofence coordinate arrays", () => {
     expect(repository.createGeofence).toHaveBeenCalledTimes(1);
   });
 
+  test("Shapes.CIRCLE is spelled circle", () => {
+    expect(Shapes.CIRCLE).toBe("circle");
+    expect(Object.values(Shapes)).toEqual([
+      "circle",
+      "polygon",
+      "rectangle",
+    ]);
+    expect(Object.values(Shapes)).not.toContain("cirlce");
+  });
+
   test("create requires a supported shapes enum value", async () => {
     const { service, repository } = makeService();
     const missingShapes = plainToInstance(CreateGeofenceDto, {
@@ -99,6 +110,16 @@ describe("Geofence coordinate arrays", () => {
     });
     expect(await validate(missingShapes)).not.toEqual([]);
 
+    const validCircle = plainToInstance(CreateGeofenceDto, {
+      name: "Test geofence",
+      type: "type-id",
+      assignType: "client",
+      shapes: "circle",
+      latitude: [10],
+      longitude: [20],
+    });
+    expect(await validate(validCircle)).toEqual([]);
+
     const invalidShapes = plainToInstance(CreateGeofenceDto, {
       name: "Test geofence",
       type: "type-id",
@@ -107,7 +128,9 @@ describe("Geofence coordinate arrays", () => {
       latitude: [10],
       longitude: [20],
     });
-    expect(await validate(invalidShapes)).not.toEqual([]);
+    expect(
+      (await validate(invalidShapes)).map(({ property }) => property),
+    ).toContain("shapes");
     expect(repository.createGeofence).not.toHaveBeenCalled();
 
     const dto = createPayload([10], [20]);

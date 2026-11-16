@@ -357,23 +357,43 @@ describe("DriverDetail ManyToMany relation inputs", () => {
     const { service, detail } = makeService();
     detail.deviceId = "device-1";
     detail.dateOfJoining = new Date("2024-01-15");
+    detail.dateOfLeaving = new Date("2024-06-15");
+    detail.dateOfBirth = new Date("1990-01-01");
+    detail.licenseIssueDate = new Date("2023-01-15");
     detail.licenseExpiryDate = new Date("2025-01-15");
+    detail.lifeInsuranceExpiryDate = new Date("2025-06-15");
+    detail.mediclaimExpiryDate = new Date("2025-12-15");
 
-    const result = await service.updateDriverDetail(
-      "driver-id",
-      plainToInstance(UpdateDriverDetailDto, {
-        deviceId: null,
-        dateOfJoining: null,
-        licenseExpiryDate: null,
-      }),
-    );
+    const dto = plainToInstance(UpdateDriverDetailDto, {
+      deviceId: null,
+      dateOfJoining: null,
+      dateOfLeaving: null,
+      dateOfBirth: null,
+      licenseIssueDate: null,
+      licenseExpiryDate: null,
+      lifeInsuranceExpiryDate: null,
+      mediclaimExpiryDate: null,
+    });
+    expect(await validate(dto)).toEqual([]);
+
+    const result = await service.updateDriverDetail("driver-id", dto);
 
     expect(detail.deviceId).toBeNull();
     expect(detail.dateOfJoining).toBeNull();
+    expect(detail.dateOfLeaving).toBeNull();
+    expect(detail.dateOfBirth).toBeNull();
+    expect(detail.licenseIssueDate).toBeNull();
     expect(detail.licenseExpiryDate).toBeNull();
+    expect(detail.lifeInsuranceExpiryDate).toBeNull();
+    expect(detail.mediclaimExpiryDate).toBeNull();
     expect(result.deviceId).toBeNull();
     expect(result.dateOfJoining).toBeNull();
+    expect(result.dateOfLeaving).toBeNull();
+    expect(result.dateOfBirth).toBeNull();
+    expect(result.licenseIssueDate).toBeNull();
     expect(result.licenseExpiryDate).toBeNull();
+    expect(result.lifeInsuranceExpiryDate).toBeNull();
+    expect(result.mediclaimExpiryDate).toBeNull();
   });
 
   test("update leaves omitted deviceId and date fields unchanged", async () => {
