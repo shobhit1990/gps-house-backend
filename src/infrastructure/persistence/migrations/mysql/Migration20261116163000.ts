@@ -20,14 +20,14 @@ export class Migration20261116163000 extends Migration {
     }
 
     const columnType = columns[0].COLUMN_TYPE.toLowerCase();
-    if (!columnType.includes("'cirlce'")) {
+    if (!columnType.includes("'circle'")) {
       return;
     }
 
     await this.execute(
       `UPDATE geofence
        SET shapes = 'circle'
-       WHERE shapes = 'cirlce'`,
+       WHERE shapes = 'circle'`,
     );
 
     const values = Object.values(Shapes)

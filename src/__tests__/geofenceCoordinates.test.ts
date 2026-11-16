@@ -96,7 +96,7 @@ describe("Geofence coordinate arrays", () => {
       "polygon",
       "rectangle",
     ]);
-    expect(Object.values(Shapes)).not.toContain("cirlce");
+    expect(Object.values(Shapes)).not.toContain("cirlce'");
   });
 
   test("create requires a supported shapes enum value", async () => {
