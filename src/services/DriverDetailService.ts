@@ -9,6 +9,7 @@ import { DriverDetail } from "../domain/entities/mysql/DriverDetail";
 import { Geofence } from "../domain/entities/mysql/Geofence";
 import { License } from "../domain/entities/mysql/License";
 import { Transporter } from "../domain/entities/mysql/Transporter";
+import { User } from "../domain/entities/mysql/User";
 import { Status } from "../domain/enums/status";
 import { IDriverDetailRepository } from "../domain/repositories/mysql/IDriverDetailRepository";
 import { AppError } from "../utils/errors";
@@ -90,7 +91,9 @@ export class DriverDetailService implements IDriverDetailService {
           : detail.licenseToDrive.getItems(),
         payload.geofences !== undefined
           ? this.findGeofences(payload.geofences)
-          : detail.geofences.getItems(),
+          : detail.geofences
+              .getItems()
+              .filter((geofence) => !geofence.isDeleted),
         this.findActor(actorUserId),
       ],
     );
@@ -169,8 +172,18 @@ export class DriverDetailService implements IDriverDetailService {
       throw new AppError("Invalid user ID", 401);
     }
 
-    const actor = await this.em.fork().findOne(Client, {
+    const em = this.em.fork();
+    const user = await em.findOne(User, {
       id: userId,
+      isDeleted: false,
+      status: Status.ACTIVE,
+    });
+    if (!user) {
+      throw new AppError("User not found", 401);
+    }
+
+    const actor = await em.findOne(Client, {
+      externalId: user.externalId,
       isDeleted: false,
       status: Status.ACTIVE,
     });
@@ -186,8 +199,7 @@ export class DriverDetailService implements IDriverDetailService {
   ): void {
     if (payload.firstName !== undefined) detail.firstName = payload.firstName;
     if (payload.lastName !== undefined) detail.lastName = payload.lastName;
-    if (payload.deviceId !== undefined)
-      detail.deviceId = payload.deviceId ?? undefined;
+    if (payload.deviceId !== undefined) detail.deviceId = payload.deviceId;
     if (payload.dateOfJoining !== undefined) {
       detail.dateOfJoining = this.toDate(payload.dateOfJoining);
     }
@@ -251,8 +263,10 @@ export class DriverDetailService implements IDriverDetailService {
       detail.reason = payload.reason ?? undefined;
   }
 
-  private toDate(value?: string | null): Date | undefined {
-    return value ? new Date(value) : undefined;
+  private toDate(value?: string | null): Date | null | undefined {
+    if (value === undefined) return undefined;
+    if (value === null) return null;
+    return new Date(value);
   }
 
   private toResponse(detail: DriverDetail): DriverDetailResponse {
@@ -300,10 +314,13 @@ export class DriverDetailService implements IDriverDetailService {
       licenseAvailable: detail.licenseAvailable,
       licenseVerified: detail.licenseVerified,
       enableGeoVerifiedAttendance: detail.enableGeoVerifiedAttendance,
-      geofences: detail.geofences.getItems().map((geofence) => ({
-        id: geofence.externalId,
-        name: geofence.name,
-      })),
+      geofences: detail.geofences
+        .getItems()
+        .filter((geofence) => !geofence.isDeleted)
+        .map((geofence) => ({
+          id: geofence.externalId,
+          name: geofence.name,
+        })),
       status: detail.status ?? null,
       reason: detail.reason ?? null,
       createdAt: detail.createdAt,

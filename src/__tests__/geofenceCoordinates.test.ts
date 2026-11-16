@@ -122,6 +122,42 @@ describe("Geofence coordinate arrays", () => {
     expect(repository.updateGeofence).toHaveBeenCalledTimes(1);
   });
 
+  test("update keeps an unchanged type without re-validating it", async () => {
+    const findOne = jest.fn(async () => {
+      throw new Error("findGeofType should not run for an unchanged type");
+    });
+    const { service, repository } = makeService();
+    (service as unknown as { em: EntityManager }).em = {
+      fork: () => ({ findOne }),
+    } as unknown as EntityManager;
+    const dto = plainToInstance(UpdateGeofenceDto, {
+      type: "type-id",
+      name: "Renamed geofence",
+    });
+
+    const result = await service.updateGeofence("geofence-id", dto);
+
+    expect(result.type.id).toBe("type-id");
+    expect(result.name).toBe("Renamed geofence");
+    expect(findOne).not.toHaveBeenCalled();
+    expect(repository.updateGeofence).toHaveBeenCalledTimes(1);
+  });
+
+  test("update still validates a changed type", async () => {
+    const findOne = jest.fn(async () => null);
+    const { service, repository } = makeService();
+    (service as unknown as { em: EntityManager }).em = {
+      fork: () => ({ findOne }),
+    } as unknown as EntityManager;
+    const dto = plainToInstance(UpdateGeofenceDto, { type: "other-type-id" });
+
+    await expect(
+      service.updateGeofence("geofence-id", dto),
+    ).rejects.toMatchObject({ statusCode: 404 });
+    expect(findOne).toHaveBeenCalled();
+    expect(repository.updateGeofence).not.toHaveBeenCalled();
+  });
+
   test("update clears geofenceCode and transitTime when passed null", async () => {
     const { service, repository, geofence } = makeService();
     geofence.geofenceCode = "existing-code";

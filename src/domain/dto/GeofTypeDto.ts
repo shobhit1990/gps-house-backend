@@ -3,6 +3,7 @@ import {
     IsNotEmpty,
     IsEnum,
     IsOptional,
+    ValidateIf,
 
 } from "class-validator";
 import { Status } from "../enums/status";
@@ -21,7 +22,7 @@ export class CreatGeofTypeDto {
 
 export class UpdateGeofTypeDto {
 
-    @IsOptional()
+    @ValidateIf((_object, value) => value !== undefined)
     @IsString({ message: "name must be a string" })
     geofType?: string;
 

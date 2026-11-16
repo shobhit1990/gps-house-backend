@@ -10,6 +10,8 @@ import { Client } from "../domain/entities/mysql/Client";
 import { DriverDetail } from "../domain/entities/mysql/DriverDetail";
 import { Geofence } from "../domain/entities/mysql/Geofence";
 import { License } from "../domain/entities/mysql/License";
+import { User } from "../domain/entities/mysql/User";
+import { Status } from "../domain/enums/status";
 import { IDriverDetailRepository } from "../domain/repositories/mysql/IDriverDetailRepository";
 import { DriverDetailService } from "../services/DriverDetailService";
 
@@ -213,6 +215,139 @@ describe("DriverDetail ManyToMany relation inputs", () => {
     expect(response.licenseToDrive).toEqual([
       { id: activeLicense.externalId, license: activeLicense.license },
     ]);
+  });
+
+  test("driver detail responses omit soft-deleted geofences", async () => {
+    const { service, detail } = makeService();
+    const activeGeofence = makeGeofence("geofence-1");
+    const deletedGeofence = Object.assign(makeGeofence("geofence-2"), {
+      isDeleted: true,
+    });
+    detail.geofences.set([activeGeofence, deletedGeofence]);
+
+    const [listResponse] = await service.getDriverDetails();
+    const byIdResponse = await service.getDriverDetailById("driver-id");
+
+    expect(listResponse.geofences).toEqual([
+      { id: activeGeofence.externalId, name: activeGeofence.name },
+    ]);
+    expect(byIdResponse.geofences).toEqual([
+      { id: activeGeofence.externalId, name: activeGeofence.name },
+    ]);
+  });
+
+  test("create resolves audit actor via User.externalId, not User.id as Client.id", async () => {
+    const actorClient = Object.assign(new Client(), {
+      id: 99,
+      externalId: "shared-external-id",
+      name: "Actor",
+      companyName: "Actor Co",
+      isDeleted: false,
+      status: Status.ACTIVE,
+    });
+    const user = Object.assign(new User(), {
+      id: 7,
+      externalId: "shared-external-id",
+      isDeleted: false,
+      status: Status.ACTIVE,
+    });
+    const findOne = jest.fn(async (entity: unknown, where: Record<string, unknown>) => {
+      if (entity === Client && where.externalId === "client-id") return client;
+      if (entity === User && where.id === 7) return user;
+      if (entity === Client && where.externalId === "shared-external-id") {
+        return actorClient;
+      }
+      if (entity === Client && where.id === 7) {
+        throw new Error("must not treat User.id as Client.id");
+      }
+      return null;
+    });
+    const { service, repository } = makeService();
+    (service as unknown as { em: EntityManager }).em = {
+      fork: () => ({
+        findOne,
+        find: jest.fn(async () => []),
+      }),
+    } as unknown as EntityManager;
+
+    await service.createDriverDetail(
+      plainToInstance(CreateDriverDetailDto, {
+        client: "client-id",
+        firstName: "Test",
+        lastName: "Driver",
+      }),
+      7,
+    );
+
+    expect(repository.createDriverDetail).toHaveBeenCalledWith(
+      expect.objectContaining({ createdBy: actorClient }),
+    );
+    expect(findOne).toHaveBeenCalledWith(
+      User,
+      expect.objectContaining({ id: 7 }),
+    );
+    expect(findOne).toHaveBeenCalledWith(
+      Client,
+      expect.objectContaining({ externalId: "shared-external-id" }),
+    );
+  });
+
+  test("update preserves explicit null for deviceId and date fields", async () => {
+    const { service, detail } = makeService();
+    detail.deviceId = "device-1";
+    detail.dateOfJoining = new Date("2024-01-15");
+    detail.licenseExpiryDate = new Date("2025-01-15");
+
+    const result = await service.updateDriverDetail(
+      "driver-id",
+      plainToInstance(UpdateDriverDetailDto, {
+        deviceId: null,
+        dateOfJoining: null,
+        licenseExpiryDate: null,
+      }),
+    );
+
+    expect(detail.deviceId).toBeNull();
+    expect(detail.dateOfJoining).toBeNull();
+    expect(detail.licenseExpiryDate).toBeNull();
+    expect(result.deviceId).toBeNull();
+    expect(result.dateOfJoining).toBeNull();
+    expect(result.licenseExpiryDate).toBeNull();
+  });
+
+  test("update leaves omitted deviceId and date fields unchanged", async () => {
+    const { service, detail } = makeService();
+    const joining = new Date("2024-01-15");
+    detail.deviceId = "device-1";
+    detail.dateOfJoining = joining;
+
+    await service.updateDriverDetail(
+      "driver-id",
+      plainToInstance(UpdateDriverDetailDto, { firstName: "Updated" }),
+    );
+
+    expect(detail.deviceId).toBe("device-1");
+    expect(detail.dateOfJoining).toBe(joining);
+  });
+
+  test("update reuses only non-deleted geofences when geofences are omitted", async () => {
+    const { service, repository, detail } = makeService();
+    const activeGeofence = makeGeofence("geofence-1");
+    const deletedGeofence = Object.assign(makeGeofence("geofence-2"), {
+      isDeleted: true,
+    });
+    detail.geofences.set([activeGeofence, deletedGeofence]);
+
+    const result = await service.updateDriverDetail(
+      "driver-id",
+      plainToInstance(UpdateDriverDetailDto, { firstName: "Updated" }),
+    );
+
+    expect(detail.geofences.getItems()).toEqual([activeGeofence]);
+    expect(result.geofences).toEqual([
+      { id: activeGeofence.externalId, name: activeGeofence.name },
+    ]);
+    expect(repository.updateDriverDetail).toHaveBeenCalledTimes(1);
   });
 
   test.each(relationCases)("create accepts $name", async (relations) => {

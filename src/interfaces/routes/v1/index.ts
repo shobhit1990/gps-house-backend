@@ -68,8 +68,8 @@ router.use("/certificateAdd", certificateAddRoutes);
 router.use("/transferCoin", transferCoinRoutes);
 router.use("/master", masterRoutes);
 router.use("/geofType", geofTypeRoutes);
-router.use("/geofence", geofenceRoutes);
-router.use("/license", licenseRoutes);
+router.use("/geofence", authenticateUser, geofenceRoutes);
+router.use("/license", authenticateUser, licenseRoutes);
 router.use("/driverDetail", driverDetailRoutes);
 
 router.use("/auth", authRoutes);

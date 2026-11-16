@@ -39,16 +39,16 @@ export class DriverDetail {
   lastName!: string;
 
   @Property({ nullable: true })
-  deviceId?: string;
+  deviceId?: string | null;
 
   @Property({ type: "date", nullable: true })
-  dateOfJoining?: Date;
+  dateOfJoining?: Date | null;
 
   @Property({ type: "date", nullable: true })
-  dateOfLeaving?: Date;
+  dateOfLeaving?: Date | null;
 
   @Property({ type: "date", nullable: true })
-  dateOfBirth?: Date;
+  dateOfBirth?: Date | null;
 
   @Property({ type: "double", nullable: true })
   experience?: number;
@@ -66,22 +66,22 @@ export class DriverDetail {
   licenseToDrive = new Collection<License>(this);
 
   @Property({ type: "date", nullable: true })
-  licenseIssueDate?: Date;
+  licenseIssueDate?: Date | null;
 
   @Property({ type: "date", nullable: true })
-  licenseExpiryDate?: Date;
+  licenseExpiryDate?: Date | null;
 
   @Property({ nullable: true })
   lifeInsuranceNumber?: string;
 
   @Property({ type: "date", nullable: true })
-  lifeInsuranceExpiryDate?: Date;
+  lifeInsuranceExpiryDate?: Date | null;
 
   @Property({ nullable: true })
   mediclaimNumber?: string;
 
   @Property({ type: "date", nullable: true })
-  mediclaimExpiryDate?: Date;
+  mediclaimExpiryDate?: Date | null;
 
   @Property({ nullable: true,})
   bloodGroup?: string;

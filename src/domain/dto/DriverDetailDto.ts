@@ -112,6 +112,7 @@ class DriverDetailFields {
 
   @IsOptional()
   @IsString()
+  @MaxLength(255)
   @Transform(trimString)
   address?: string | null;
 

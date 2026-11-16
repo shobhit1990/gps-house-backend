@@ -79,8 +79,11 @@ export class GeofenceService implements IGeofenceService {
       payload.longitude ?? geofence.longitude,
     );
 
+    const nextTypeId = payload.type;
+    const typeUnchanged =
+      nextTypeId === undefined || nextTypeId === geofence.type.externalId;
     const [type, actor] = await Promise.all([
-      payload.type ? this.findGeofType(payload.type) : geofence.type,
+      typeUnchanged ? geofence.type : this.findGeofType(nextTypeId),
       this.findActor(actorUserId),
     ]);
 

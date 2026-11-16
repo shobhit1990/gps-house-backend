@@ -105,35 +105,6 @@ export async function initializeApp() {
 export async function initializeORM(): Promise<{
   mySqlOrm: MikroORM<MySqlDriver>;
   mongoOrm?: MikroORM<MongoDriver>;
-// }> {
-//   try {
-//     const mySqlOrm = await MikroORM.init<MySqlDriver>(mysqlConfig);
-//     const schemaGenerator = mySqlOrm.getSchemaGenerator();
-//     await schemaGenerator.ensureDatabase();
-//     await mySqlOrm.getMigrator().up();
-//     await schemaGenerator.updateSchema();
-
-//     logger.info("MySQL MikroORM initialized successfully");
-
-//     let mongoOrm: MikroORM<MongoDriver> | undefined;
-//     try {
-//       mongoOrm = await MikroORM.init<MongoDriver>(mongoConfig);
-//       await mongoOrm.getSchemaGenerator().ensureIndexes();
-//       logger.info("MongoDB MikroORM initialized successfully");
-//     } catch (mongoError) {
-//       logger.error(
-//         "Error initializing MongoDB MikroORM. Continuing without MongoDB:",
-//         mongoError,
-//       );
-//     }
-
-//     return { mySqlOrm, mongoOrm };
-//   } catch (error) {
-//     logger.error("Error initializing MikroORM:", error);
-//     throw error;
-//   }
-// }
-
 }> {
   try {
     const mySqlOrm = await MikroORM.init<MySqlDriver>(mysqlConfig);
