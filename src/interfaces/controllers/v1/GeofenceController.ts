@@ -42,7 +42,10 @@ export class GeofenceController {
       enableImplicitConversion: true,
     });
     await this.validateDto(dto);
-    const geofence = await this.geofenceService.createGeofence(dto, req.userId);
+    const geofence = await this.geofenceService.createGeofence(
+      dto,
+      req.userExternalId,
+    );
     res.status(201).json({
       message: "Geofence created successfully",
       data: geofence,
@@ -57,7 +60,7 @@ export class GeofenceController {
     const geofence = await this.geofenceService.updateGeofence(
       this.getExternalId(req),
       dto,
-      req.userId,
+      req.userExternalId,
     );
     res.status(200).json({
       message: "Geofence updated successfully",
@@ -68,7 +71,7 @@ export class GeofenceController {
   deleteGeofence = asyncHandler(async (req: CustomRequest, res: Response) => {
     await this.geofenceService.deleteGeofence(
       this.getExternalId(req),
-      req.userId,
+      req.userExternalId,
     );
     res.status(200).json({
       message: "Geofence deleted successfully",

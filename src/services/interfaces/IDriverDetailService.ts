@@ -46,14 +46,17 @@ export interface IDriverDetailService {
 
   createDriverDetail(
     payload: CreateDriverDetailDto,
-    actorUserId?: number,
+    actorExternalId?: string,
   ): Promise<DriverDetailResponse>;
 
   updateDriverDetail(
     externalId: string,
     payload: UpdateDriverDetailDto,
-    actorUserId?: number,
+    actorExternalId?: string,
   ): Promise<DriverDetailResponse>;
 
-  deleteDriverDetail(externalId: string, actorUserId?: number): Promise<void>;
+  deleteDriverDetail(
+    externalId: string,
+    actorExternalId?: string,
+  ): Promise<void>;
 }

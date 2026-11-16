@@ -43,7 +43,7 @@ export class DriverDetailService implements IDriverDetailService {
 
   async createDriverDetail(
     payload: CreateDriverDetailDto,
-    actorUserId?: number,
+    actorExternalId?: string,
   ): Promise<DriverDetailResponse> {
     const [client, transporter, licenses, geofences, actor] = await Promise.all(
       [
@@ -51,7 +51,7 @@ export class DriverDetailService implements IDriverDetailService {
         this.findTransporter(payload.transporter),
         this.findLicenses(payload.licenseToDrive),
         this.findGeofences(payload.geofences),
-        this.findActor(actorUserId),
+        this.findActor(actorExternalId),
       ],
     );
 
@@ -72,7 +72,7 @@ export class DriverDetailService implements IDriverDetailService {
   async updateDriverDetail(
     externalId: string,
     payload: UpdateDriverDetailDto,
-    actorUserId?: number,
+    actorExternalId?: string,
   ): Promise<DriverDetailResponse> {
     const detail =
       await this.driverDetailRepository.getDriverDetailById(externalId);
@@ -94,7 +94,7 @@ export class DriverDetailService implements IDriverDetailService {
           : detail.geofences
               .getItems()
               .filter((geofence) => !geofence.isDeleted),
-        this.findActor(actorUserId),
+        this.findActor(actorExternalId),
       ],
     );
 
@@ -111,9 +111,9 @@ export class DriverDetailService implements IDriverDetailService {
 
   async deleteDriverDetail(
     externalId: string,
-    actorUserId?: number,
+    actorExternalId?: string,
   ): Promise<void> {
-    const actor = await this.findActor(actorUserId);
+    const actor = await this.findActor(actorExternalId);
     await this.driverDetailRepository.deleteDriverDetail(externalId, actor);
   }
 
@@ -166,15 +166,17 @@ export class DriverDetailService implements IDriverDetailService {
     return geofences;
   }
 
-  private async findActor(userId?: number): Promise<Client | undefined> {
-    if (userId === undefined) return undefined;
-    if (!Number.isSafeInteger(userId) || userId <= 0) {
+  private async findActor(
+    userExternalId?: string,
+  ): Promise<Client | undefined> {
+    if (userExternalId === undefined) return undefined;
+    if (typeof userExternalId !== "string" || !userExternalId.trim()) {
       throw new AppError("Invalid user ID", 401);
     }
 
     const em = this.em.fork();
     const user = await em.findOne(User, {
-      id: userId,
+      externalId: userExternalId,
       isDeleted: false,
       status: Status.ACTIVE,
     });
@@ -188,7 +190,7 @@ export class DriverDetailService implements IDriverDetailService {
       status: Status.ACTIVE,
     });
     if (!actor) {
-      throw new AppError("User not found", 401);
+      throw new AppError("Client profile not found", 401);
     }
     return actor;
   }

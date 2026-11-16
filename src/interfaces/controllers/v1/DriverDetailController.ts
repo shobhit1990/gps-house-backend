@@ -45,7 +45,7 @@ export class DriverDetailController {
       await this.validateDto(dto);
       const detail = await this.driverDetailService.createDriverDetail(
         dto,
-        req.userId,
+        req.userExternalId,
       );
       res.status(201).json({
         message: "Driver detail created successfully",
@@ -63,7 +63,7 @@ export class DriverDetailController {
       const detail = await this.driverDetailService.updateDriverDetail(
         this.getExternalId(req),
         dto,
-        req.userId,
+        req.userExternalId,
       );
       res.status(200).json({
         message: "Driver detail updated successfully",
@@ -76,7 +76,7 @@ export class DriverDetailController {
     async (req: CustomRequest, res: Response) => {
       await this.driverDetailService.deleteDriverDetail(
         this.getExternalId(req),
-        req.userId,
+        req.userExternalId,
       );
       res.status(200).json({
         message: "Driver detail deleted successfully",

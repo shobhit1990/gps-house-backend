@@ -33,14 +33,14 @@ export interface IGeofenceService {
 
   createGeofence(
     payload: CreateGeofenceDto,
-    actorUserId?: number,
+    actorExternalId?: string,
   ): Promise<GeofenceResponse>;
 
   updateGeofence(
     externalId: string,
     payload: UpdateGeofenceDto,
-    actorUserId?: number,
+    actorExternalId?: string,
   ): Promise<GeofenceResponse>;
 
-  deleteGeofence(externalId: string, actorUserId?: number): Promise<void>;
+  deleteGeofence(externalId: string, actorExternalId?: string): Promise<void>;
 }

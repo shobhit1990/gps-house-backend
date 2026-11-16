@@ -253,11 +253,14 @@ describe("DriverDetail ManyToMany relation inputs", () => {
     });
     const findOne = jest.fn(async (entity: unknown, where: Record<string, unknown>) => {
       if (entity === Client && where.externalId === "client-id") return client;
-      if (entity === User && where.id === 7) return user;
+      if (entity === User && where.externalId === "shared-external-id") return user;
       if (entity === Client && where.externalId === "shared-external-id") {
         return actorClient;
       }
-      if (entity === Client && where.id === 7) {
+      if (entity === User && where.id !== undefined) {
+        throw new Error("must not look up actor by User.id");
+      }
+      if (entity === Client && where.id !== undefined) {
         throw new Error("must not treat User.id as Client.id");
       }
       return null;
@@ -276,7 +279,7 @@ describe("DriverDetail ManyToMany relation inputs", () => {
         firstName: "Test",
         lastName: "Driver",
       }),
-      7,
+      "shared-external-id",
     );
 
     expect(repository.createDriverDetail).toHaveBeenCalledWith(
@@ -284,13 +287,71 @@ describe("DriverDetail ManyToMany relation inputs", () => {
     );
     expect(findOne).toHaveBeenCalledWith(
       User,
-      expect.objectContaining({ id: 7 }),
+      expect.objectContaining({ externalId: "shared-external-id" }),
     );
     expect(findOne).toHaveBeenCalledWith(
       Client,
       expect.objectContaining({ externalId: "shared-external-id" }),
     );
   });
+
+  test.each(["create", "update", "delete"] as const)(
+    "%s rejects an authenticated User without a matching Client",
+    async (operation) => {
+      const user = Object.assign(new User(), {
+        id: 7,
+        externalId: "user-only-external-id",
+        isDeleted: false,
+        status: Status.ACTIVE,
+      });
+      const findOne = jest.fn(
+        async (entity: unknown, where: Record<string, unknown>) => {
+          if (entity === Client && where.externalId === "client-id") return client;
+          if (entity === User && where.externalId === "user-only-external-id") {
+            return user;
+          }
+          return null;
+        },
+      );
+      const { service, repository } = makeService();
+      (service as unknown as { em: EntityManager }).em = {
+        fork: () => ({
+          findOne,
+          find: jest.fn(async () => []),
+        }),
+      } as unknown as EntityManager;
+
+      const expected = { statusCode: 401, message: "Client profile not found" };
+
+      if (operation === "create") {
+        await expect(
+          service.createDriverDetail(
+            plainToInstance(CreateDriverDetailDto, {
+              client: "client-id",
+              firstName: "Test",
+              lastName: "Driver",
+            }),
+            "user-only-external-id",
+          ),
+        ).rejects.toMatchObject(expected);
+        expect(repository.createDriverDetail).not.toHaveBeenCalled();
+      } else if (operation === "update") {
+        await expect(
+          service.updateDriverDetail(
+            "driver-id",
+            plainToInstance(UpdateDriverDetailDto, { firstName: "Updated" }),
+            "user-only-external-id",
+          ),
+        ).rejects.toMatchObject(expected);
+        expect(repository.updateDriverDetail).not.toHaveBeenCalled();
+      } else {
+        await expect(
+          service.deleteDriverDetail("driver-id", "user-only-external-id"),
+        ).rejects.toMatchObject(expected);
+        expect(repository.deleteDriverDetail).not.toHaveBeenCalled();
+      }
+    },
+  );
 
   test("update preserves explicit null for deviceId and date fields", async () => {
     const { service, detail } = makeService();

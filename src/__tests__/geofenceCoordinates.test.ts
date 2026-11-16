@@ -6,8 +6,11 @@ import {
   CreateGeofenceDto,
   UpdateGeofenceDto,
 } from "../domain/dto/GeofenceDto";
+import { Client } from "../domain/entities/mysql/Client";
 import { Geofence } from "../domain/entities/mysql/Geofence";
 import { GeofType } from "../domain/entities/mysql/GeofType";
+import { User } from "../domain/entities/mysql/User";
+import { Status } from "../domain/enums/status";
 import { IGeofenceRepository } from "../domain/repositories/mysql/IGeofenceRepository";
 import { GeofenceService } from "../services/GeofenceService";
 
@@ -100,7 +103,7 @@ describe("Geofence coordinate arrays", () => {
       name: "Test geofence",
       type: "type-id",
       assignType: "client",
-      shapes: "circle",
+      shapes: "hexagon",
       latitude: [10],
       longitude: [20],
     });
@@ -120,6 +123,57 @@ describe("Geofence coordinate arrays", () => {
     const result = await service.updateGeofence("geofence-id", dto);
     expect(result.shapes).toBe("rectangle");
     expect(repository.updateGeofence).toHaveBeenCalledTimes(1);
+  });
+
+  test("create resolves audit actor via User.externalId", async () => {
+    const actorClient = Object.assign(new Client(), {
+      id: 99,
+      externalId: "shared-external-id",
+      status: Status.ACTIVE,
+      isDeleted: false,
+    });
+    const user = Object.assign(new User(), {
+      id: 7,
+      externalId: "shared-external-id",
+      status: Status.ACTIVE,
+      isDeleted: false,
+    });
+    const findOne = jest.fn(
+      async (entity: unknown, where: Record<string, unknown>) => {
+        if (entity === GeofType) return type;
+        if (entity === User && where.externalId === "shared-external-id") {
+          return user;
+        }
+        if (entity === Client && where.externalId === "shared-external-id") {
+          return actorClient;
+        }
+        if (entity === User && where.id !== undefined) {
+          throw new Error("must not look up actor by User.id");
+        }
+        if (entity === Client && where.id !== undefined) {
+          throw new Error("must not look up actor by Client.id");
+        }
+        return null;
+      },
+    );
+    const { service, repository } = makeService();
+    (service as unknown as { em: EntityManager }).em = {
+      fork: () => ({ findOne }),
+    } as unknown as EntityManager;
+
+    await service.createGeofence(createPayload([10], [20]), "shared-external-id");
+
+    expect(repository.createGeofence).toHaveBeenCalledWith(
+      expect.objectContaining({ createdBy: actorClient }),
+    );
+    expect(findOne).toHaveBeenCalledWith(
+      User,
+      expect.objectContaining({ externalId: "shared-external-id" }),
+    );
+    expect(findOne).toHaveBeenCalledWith(
+      Client,
+      expect.objectContaining({ externalId: "shared-external-id" }),
+    );
   });
 
   test("update keeps an unchanged type without re-validating it", async () => {

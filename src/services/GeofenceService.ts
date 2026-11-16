@@ -7,6 +7,7 @@ import {
 import { Client } from "../domain/entities/mysql/Client";
 import { Geofence } from "../domain/entities/mysql/Geofence";
 import { GeofType } from "../domain/entities/mysql/GeofType";
+import { User } from "../domain/entities/mysql/User";
 import { Status } from "../domain/enums/status";
 import { IGeofenceRepository } from "../domain/repositories/mysql/IGeofenceRepository";
 import { AppError } from "../utils/errors";
@@ -39,12 +40,12 @@ export class GeofenceService implements IGeofenceService {
 
   async createGeofence(
     payload: CreateGeofenceDto,
-    actorUserId?: number,
+    actorExternalId?: string,
   ): Promise<GeofenceResponse> {
     this.validateCoordinatePairs(payload.latitude, payload.longitude);
     const [type, actor] = await Promise.all([
       this.findGeofType(payload.type),
-      this.findActor(actorUserId),
+      this.findActor(actorExternalId),
     ]);
 
     const geofence = new Geofence();
@@ -68,7 +69,7 @@ export class GeofenceService implements IGeofenceService {
   async updateGeofence(
     externalId: string,
     payload: UpdateGeofenceDto,
-    actorUserId?: number,
+    actorExternalId?: string,
   ): Promise<GeofenceResponse> {
     const geofence = await this.geofenceRepository.getGeofenceById(externalId);
     if (!geofence) {
@@ -84,7 +85,7 @@ export class GeofenceService implements IGeofenceService {
       nextTypeId === undefined || nextTypeId === geofence.type.externalId;
     const [type, actor] = await Promise.all([
       typeUnchanged ? geofence.type : this.findGeofType(nextTypeId),
-      this.findActor(actorUserId),
+      this.findActor(actorExternalId),
     ]);
 
     if (payload.name !== undefined) geofence.name = payload.name;
@@ -122,9 +123,9 @@ export class GeofenceService implements IGeofenceService {
 
   async deleteGeofence(
     externalId: string,
-    actorUserId?: number,
+    actorExternalId?: string,
   ): Promise<void> {
-    const actor = await this.findActor(actorUserId);
+    const actor = await this.findActor(actorExternalId);
     await this.geofenceRepository.deleteGeofence(externalId, actor);
   }
 
@@ -158,14 +159,26 @@ export class GeofenceService implements IGeofenceService {
     }
   }
 
-  private async findActor(userId?: number): Promise<Client | undefined> {
-    if (userId === undefined) return undefined;
-    if (!Number.isSafeInteger(userId) || userId <= 0) {
+  private async findActor(
+    userExternalId?: string,
+  ): Promise<Client | undefined> {
+    if (userExternalId === undefined) return undefined;
+    if (typeof userExternalId !== "string" || !userExternalId.trim()) {
       throw new AppError("Invalid user ID", 401);
     }
 
-    const actor = await this.em.fork().findOne(Client, {
-      id: userId,
+    const em = this.em.fork();
+    const user = await em.findOne(User, {
+      externalId: userExternalId,
+      isDeleted: false,
+      status: Status.ACTIVE,
+    });
+    if (!user) {
+      throw new AppError("User not found", 401);
+    }
+
+    const actor = await em.findOne(Client, {
+      externalId: user.externalId,
       isDeleted: false,
       status: Status.ACTIVE,
     });
