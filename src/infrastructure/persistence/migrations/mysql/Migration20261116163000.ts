@@ -23,6 +23,7 @@ export class Migration20261116163000 extends Migration {
     if (!columnType.includes("'circle'")) {
       return;
     }
+    
 
     await this.execute(
       `UPDATE geofence
