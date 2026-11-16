@@ -353,9 +353,10 @@ describe("DriverDetail ManyToMany relation inputs", () => {
     },
   );
 
-  test("update preserves explicit null for deviceId and date fields", async () => {
+  test("update preserves explicit null for deviceId, phoneNumber, and date fields", async () => {
     const { service, detail } = makeService();
     detail.deviceId = "device-1";
+    detail.phoneNumber = "9999999999";
     detail.dateOfJoining = new Date("2024-01-15");
     detail.dateOfLeaving = new Date("2024-06-15");
     detail.dateOfBirth = new Date("1990-01-01");
@@ -366,6 +367,7 @@ describe("DriverDetail ManyToMany relation inputs", () => {
 
     const dto = plainToInstance(UpdateDriverDetailDto, {
       deviceId: null,
+      phoneNumber: null,
       dateOfJoining: null,
       dateOfLeaving: null,
       dateOfBirth: null,
@@ -379,6 +381,7 @@ describe("DriverDetail ManyToMany relation inputs", () => {
     const result = await service.updateDriverDetail("driver-id", dto);
 
     expect(detail.deviceId).toBeNull();
+    expect(detail.phoneNumber).toBeNull();
     expect(detail.dateOfJoining).toBeNull();
     expect(detail.dateOfLeaving).toBeNull();
     expect(detail.dateOfBirth).toBeNull();
@@ -387,6 +390,7 @@ describe("DriverDetail ManyToMany relation inputs", () => {
     expect(detail.lifeInsuranceExpiryDate).toBeNull();
     expect(detail.mediclaimExpiryDate).toBeNull();
     expect(result.deviceId).toBeNull();
+    expect(result.phoneNumber).toBeNull();
     expect(result.dateOfJoining).toBeNull();
     expect(result.dateOfLeaving).toBeNull();
     expect(result.dateOfBirth).toBeNull();

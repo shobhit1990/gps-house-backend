@@ -213,14 +213,14 @@ export class DriverDetailService implements IDriverDetailService {
     if (payload.dateOfBirth !== undefined) {
       detail.dateOfBirth = this.toDate(payload.dateOfBirth);
     }
-    if (payload.experience !== undefined)
-      detail.experience = payload.experience ?? undefined;
-    if (payload.salary !== undefined)
-      detail.salary = payload.salary ?? undefined;
-    if (payload.phoneNumber !== undefined)
-      detail.phoneNumber = payload.phoneNumber ?? undefined;
-    if (payload.licenseNumber !== undefined)
-      detail.licenseNumber = payload.licenseNumber ?? undefined;
+    if (payload.experience !== undefined) detail.experience = payload.experience;
+    if (payload.salary !== undefined) detail.salary = payload.salary;
+    if (payload.phoneNumber !== undefined) {
+      detail.phoneNumber = payload.phoneNumber;
+    }
+    if (payload.licenseNumber !== undefined) {
+      detail.licenseNumber = payload.licenseNumber;
+    }
     if (payload.licenseIssueDate !== undefined) {
       detail.licenseIssueDate = this.toDate(payload.licenseIssueDate);
     }
@@ -228,7 +228,7 @@ export class DriverDetailService implements IDriverDetailService {
       detail.licenseExpiryDate = this.toDate(payload.licenseExpiryDate);
     }
     if (payload.lifeInsuranceNumber !== undefined) {
-      detail.lifeInsuranceNumber = payload.lifeInsuranceNumber ?? undefined;
+      detail.lifeInsuranceNumber = payload.lifeInsuranceNumber;
     }
     if (payload.lifeInsuranceExpiryDate !== undefined) {
       detail.lifeInsuranceExpiryDate = this.toDate(
@@ -236,22 +236,21 @@ export class DriverDetailService implements IDriverDetailService {
       );
     }
     if (payload.mediclaimNumber !== undefined) {
-      detail.mediclaimNumber = payload.mediclaimNumber ?? undefined;
+      detail.mediclaimNumber = payload.mediclaimNumber;
     }
     if (payload.mediclaimExpiryDate !== undefined) {
       detail.mediclaimExpiryDate = this.toDate(payload.mediclaimExpiryDate);
     }
     if (payload.bloodGroup !== undefined) {
-      detail.bloodGroup = payload.bloodGroup ?? undefined;
+      detail.bloodGroup = payload.bloodGroup;
     }
     if (payload.supervisorName !== undefined) {
-      detail.supervisorName = payload.supervisorName ?? undefined;
+      detail.supervisorName = payload.supervisorName;
     }
     if (payload.supervisorPhoneNumber !== undefined) {
-      detail.supervisorPhoneNumber = payload.supervisorPhoneNumber ?? undefined;
+      detail.supervisorPhoneNumber = payload.supervisorPhoneNumber;
     }
-    if (payload.address !== undefined)
-      detail.address = payload.address ?? undefined;
+    if (payload.address !== undefined) detail.address = payload.address;
     if (payload.licenseAvailable !== undefined) {
       detail.licenseAvailable = payload.licenseAvailable;
     }
@@ -261,10 +260,8 @@ export class DriverDetailService implements IDriverDetailService {
     if (payload.enableGeoVerifiedAttendance !== undefined) {
       detail.enableGeoVerifiedAttendance = payload.enableGeoVerifiedAttendance;
     }
-    if (payload.status !== undefined)
-      detail.status = payload.status ?? undefined;
-    if (payload.reason !== undefined)
-      detail.reason = payload.reason ?? undefined;
+    if (payload.status !== undefined) detail.status = payload.status;
+    if (payload.reason !== undefined) detail.reason = payload.reason;
   }
 
   private toDate(value?: string | null): Date | null | undefined {

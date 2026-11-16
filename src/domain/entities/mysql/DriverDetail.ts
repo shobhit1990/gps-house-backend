@@ -51,16 +51,16 @@ export class DriverDetail {
   dateOfBirth?: Date | null;
 
   @Property({ type: "double", nullable: true })
-  experience?: number;
+  experience?: number | null;
 
   @Property({ type: "double", nullable: true })
-  salary?: number;
+  salary?: number | null;
 
   @Property({ nullable: true })
-  phoneNumber?: string;
+  phoneNumber?: string | null;
 
   @Property({ nullable: true, })
-  licenseNumber?: string;
+  licenseNumber?: string | null;
 
   @ManyToMany(() => License)
   licenseToDrive = new Collection<License>(this);
@@ -72,28 +72,28 @@ export class DriverDetail {
   licenseExpiryDate?: Date | null;
 
   @Property({ nullable: true })
-  lifeInsuranceNumber?: string;
+  lifeInsuranceNumber?: string | null;
 
   @Property({ type: "date", nullable: true })
   lifeInsuranceExpiryDate?: Date | null;
 
   @Property({ nullable: true })
-  mediclaimNumber?: string;
+  mediclaimNumber?: string | null;
 
   @Property({ type: "date", nullable: true })
   mediclaimExpiryDate?: Date | null;
 
   @Property({ nullable: true,})
-  bloodGroup?: string;
+  bloodGroup?: string | null;
 
   @Property({ nullable: true })
-  supervisorName?: string;
+  supervisorName?: string | null;
 
   @Property({ nullable: true })
-  supervisorPhoneNumber?: string;
+  supervisorPhoneNumber?: string | null;
 
   @Property({ nullable: true })
-  address?: string;
+  address?: string | null;
 
   @Property({ nullable: false, default: true })
   licenseAvailable: boolean = true;
@@ -120,10 +120,10 @@ export class DriverDetail {
   deletedBy?: Client;
 
   @Enum({ items: () => Status, nullable: true })
-  status?: Status;
+  status?: Status | null;
 
   @Property({ nullable: true})
-  reason?: string;
+  reason?: string | null;
 
   @Exclude()
   @Property({ default: false })
