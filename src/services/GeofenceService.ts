@@ -183,7 +183,7 @@ export class GeofenceService implements IGeofenceService {
       status: Status.ACTIVE,
     });
     if (!actor) {
-      throw new AppError("User not found", 401);
+      throw new AppError("Client profile not found", 401);
     }
     return actor;
   }

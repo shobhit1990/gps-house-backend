@@ -199,6 +199,60 @@ describe("Geofence coordinate arrays", () => {
     );
   });
 
+  test.each(["create", "update", "delete"] as const)(
+    "%s rejects an authenticated User without a matching Client",
+    async (operation) => {
+      const user = Object.assign(new User(), {
+        id: 7,
+        externalId: "user-only-external-id",
+        status: Status.ACTIVE,
+        isDeleted: false,
+      });
+      const findOne = jest.fn(
+        async (entity: unknown, where: Record<string, unknown>) => {
+          if (entity === GeofType) return type;
+          if (entity === User && where.externalId === "user-only-external-id") {
+            return user;
+          }
+          return null;
+        },
+      );
+      const { service, repository } = makeService();
+      (service as unknown as { em: EntityManager }).em = {
+        fork: () => ({ findOne }),
+      } as unknown as EntityManager;
+
+      const expected = {
+        statusCode: 401,
+        message: "Client profile not found",
+      };
+
+      if (operation === "create") {
+        await expect(
+          service.createGeofence(
+            createPayload([10], [20]),
+            "user-only-external-id",
+          ),
+        ).rejects.toMatchObject(expected);
+        expect(repository.createGeofence).not.toHaveBeenCalled();
+      } else if (operation === "update") {
+        await expect(
+          service.updateGeofence(
+            "geofence-id",
+            plainToInstance(UpdateGeofenceDto, { name: "Updated" }),
+            "user-only-external-id",
+          ),
+        ).rejects.toMatchObject(expected);
+        expect(repository.updateGeofence).not.toHaveBeenCalled();
+      } else {
+        await expect(
+          service.deleteGeofence("geofence-id", "user-only-external-id"),
+        ).rejects.toMatchObject(expected);
+        expect(repository.deleteGeofence).not.toHaveBeenCalled();
+      }
+    },
+  );
+
   test("update keeps an unchanged type without re-validating it", async () => {
     const findOne = jest.fn(async () => {
       throw new Error("findGeofType should not run for an unchanged type");
