@@ -17,7 +17,7 @@ export function createAuthToken(user: User): string {
     secret,
     {
       subject: user.externalId,
-      expiresIn: "15m",
+      expiresIn: "30m",
     },
   );
 }

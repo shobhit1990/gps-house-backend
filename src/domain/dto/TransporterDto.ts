@@ -1,7 +1,7 @@
 import { IsEnum, IsNotEmpty, IsOptional, IsString } from "class-validator";
 import { Status } from "../enums/status";
 import { IsMobileNumber, IsPassword } from "../validators/UserValidators";
-import { Expose } from "class-transformer";
+import { Expose, Transform } from "class-transformer";
 import { ToLowerCase } from "../../utils/textNormalization";
 import { InactiveTime } from "../enums/InactiveTime";
 
@@ -71,33 +71,40 @@ export class CreateTransporterDto {
     @IsString({ message: " must be a string" })
     reason?: string;
 
-    @IsNotEmpty({ message: "Client is required" })
-    @IsString({ message: "Client must be a string" })
+    @IsNotEmpty({ message: "subscriptionStartDate is required" })
+    @IsString({ message: "subscriptionStartDate must be a string" })
     subscriptionStartDate!: string;
 
-    @IsNotEmpty({ message: "Client is required" })
-    @IsString({ message: "Client must be a string" })
+    @IsNotEmpty({ message: "subscriptionDueDate is required" })
+    @IsString({ message: "subscriptionDueDate must be a string" })
     subscriptionDueDate!: string;
 
-    @IsOptional()
+    @IsNotEmpty({ message: "subscriptionExtendDate is required" })
     @IsString({ message: "subscriptionExtendDate must be a string" })
-    subscriptionExtendDate?: string
+    subscriptionExtendDate!: string;
 
     @IsOptional()
+    @Transform(({ value }) =>
+      value === undefined || value === null || value === ""
+        ? undefined
+        : String(value),
+    )
     @IsString({ message: "subscriptionExpiryCount must be a string" })
-    subscriptionExpiryCount?: string
+    subscriptionExpiryCount?: string;
 
     @IsOptional()
+    @Transform(({ value }) => (value === "" ? undefined : value))
     @IsString({ message: "maximumRadiusForNearestPOI must be a string" })
-    maximumRadiusForNearestPOI?: string
+    maximumRadiusForNearestPOI?: string;
 
     @IsOptional()
+    @Transform(({ value }) => (value === "" ? undefined : value))
     @IsString({ message: "minimumDistanceForAddress must be a string" })
-    minimumDistanceForAddress?: string
+    minimumDistanceForAddress?: string;
 
     @IsOptional()
     @IsString({ message: "dataRestriction must be a string" })
-    dataRestriction?: string
+    dataRestriction?: string;
 
 }
 
@@ -165,31 +172,38 @@ export class updateTransporterDto {
     reason?: string;
 
     @IsOptional()
-    @IsString({ message: "Client must be a string" })
+    @IsString({ message: "subscriptionStartDate must be a string" })
     subscriptionStartDate?: string;
 
     @IsOptional()
-    @IsString({ message: "Client must be a string" })
+    @IsString({ message: "subscriptionDueDate must be a string" })
     subscriptionDueDate?: string;
 
     @IsOptional()
     @IsString({ message: "subscriptionExtendDate must be a string" })
-    subscriptionExtendDate?: string
+    subscriptionExtendDate?: string;
 
     @IsOptional()
+    @Transform(({ value }) =>
+      value === undefined || value === null || value === ""
+        ? undefined
+        : String(value),
+    )
     @IsString({ message: "subscriptionExpiryCount must be a string" })
-    subscriptionExpiryCount?: string
+    subscriptionExpiryCount?: string;
 
     @IsOptional()
+    @Transform(({ value }) => (value === "" ? undefined : value))
     @IsString({ message: "maximumRadiusForNearestPOI must be a string" })
-    maximumRadiusForNearestPOI?: string
+    maximumRadiusForNearestPOI?: string;
 
     @IsOptional()
+    @Transform(({ value }) => (value === "" ? undefined : value))
     @IsString({ message: "minimumDistanceForAddress must be a string" })
-    minimumDistanceForAddress?: string
+    minimumDistanceForAddress?: string;
 
     @IsOptional()
     @IsString({ message: "dataRestriction must be a string" })
-    dataRestriction?: string
+    dataRestriction?: string;
 
 }
