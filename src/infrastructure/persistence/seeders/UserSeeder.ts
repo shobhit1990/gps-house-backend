@@ -5,11 +5,11 @@ import { User } from "../../../domain/entities/mysql/User";
 import { Status } from "../../../domain/enums/status";
 import { UserType } from "../../../domain/enums/UserType";
 import {
-  ///hashPassword,
+  hashPassword,
   isBcryptPasswordHash,
 } from "../../../utils/passwordHash";
 
-///const DEFAULT_ADMIN_PASSWORD = "Admin@123456";
+const DEFAULT_ADMIN_PASSWORD = "Admin@123456";
 
 export class UserSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
@@ -24,7 +24,7 @@ export class UserSeeder extends Seeder {
 
       if (existingUser) {
         if (!isBcryptPasswordHash(existingUser.password)) {
-          ///existingUser.password = await hashPassword(DEFAULT_ADMIN_PASSWORD);
+          existingUser.password = await hashPassword(DEFAULT_ADMIN_PASSWORD);
           await em.flush();
           logger.info("Default admin user password hashed.");
         } else {
@@ -37,7 +37,7 @@ export class UserSeeder extends Seeder {
 
       defaultUser.companyName = "ASG Innovation";
       defaultUser.userName = "admin";
-      defaultUser.password = "Admin@123456";
+      defaultUser.password = await hashPassword(DEFAULT_ADMIN_PASSWORD);
       defaultUser.companyAddress = "Lucknow, Uttar Pradesh, India";
       defaultUser.dataRestriction = "60";
       defaultUser.userType = UserType.USER;
