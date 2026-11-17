@@ -113,7 +113,7 @@ export class TransporterService implements ITransporterService {
     });
 
     if (!language) {
-      throw new Error("Language not found");
+      throw new AppError("Language not found", 404);
     }
 
     const timezone = await em.findOne(TimeZone, {
@@ -121,7 +121,7 @@ export class TransporterService implements ITransporterService {
     });
 
     if (!timezone) {
-      throw new Error("Timezone not found");
+      throw new AppError("Timezone not found", 404);
     }
 
     const commonClient = await em.findOne(User, {
@@ -183,7 +183,7 @@ export class TransporterService implements ITransporterService {
       : undefined;
 
     if (!dto.subscriptionExtendDate) {
-      throw new Error("Subscription extend date is required");
+      throw new AppError("subscriptionExtendDate is required", 400);
     }
 
     transporter.subscriptionExtendDate = new Date(dto.subscriptionExtendDate);

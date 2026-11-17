@@ -22,6 +22,7 @@ export interface GeofenceResponse {
   geoType: GeoType | null;
   latitude: number[];
   longitude: number[];
+  radius: number | null;
   status: Status | null;
   reason: string | null;
   createdAt: Date;

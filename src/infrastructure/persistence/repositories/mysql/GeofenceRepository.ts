@@ -57,6 +57,7 @@ export class GeofenceRepository implements IGeofenceRepository {
       geoType: geofence.geoType,
       latitude: geofence.latitude,
       longitude: geofence.longitude,
+      radius: geofence.radius,
       status: geofence.status,
       reason: geofence.reason,
       ...(geofence.updatedBy

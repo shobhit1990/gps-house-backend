@@ -57,6 +57,9 @@ export class Geofence {
   @Property({ type: "json", nullable: false })
   longitude!: number[];
 
+  @Property({ type: "double", nullable: true })
+  radius?: number | null;
+
   @Enum({ items: () => Status, nullable: true })
   status?: Status;
 

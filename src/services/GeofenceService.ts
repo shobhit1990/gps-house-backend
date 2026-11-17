@@ -58,6 +58,7 @@ export class GeofenceService implements IGeofenceService {
     geofence.geoType = payload.geoType;
     geofence.latitude = [...payload.latitude];
     geofence.longitude = [...payload.longitude];
+    geofence.radius = payload.radius;
     geofence.status = payload.status ?? Status.ACTIVE;
     geofence.reason = payload.reason;
     geofence.createdBy = actor;
@@ -111,6 +112,9 @@ export class GeofenceService implements IGeofenceService {
     }
     if (payload.longitude !== undefined) {
       geofence.longitude = [...payload.longitude];
+    }
+    if (payload.radius !== undefined) {
+      geofence.radius = payload.radius;
     }
     if (payload.status !== undefined && payload.status !== null) {
       geofence.status = payload.status;
@@ -197,6 +201,7 @@ export class GeofenceService implements IGeofenceService {
       geoType: geofence.geoType ?? null,
       latitude: geofence.latitude,
       longitude: geofence.longitude,
+      radius: geofence.radius ?? null,
       status: geofence.status ?? null,
       reason: geofence.reason ?? null,
       createdAt: geofence.createdAt,

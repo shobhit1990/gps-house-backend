@@ -63,6 +63,10 @@ export class CreateGeofenceDto {
   longitude!: number[];
 
   @IsOptional()
+  @IsNumber({ allowNaN: false, allowInfinity: false })
+  radius?: number;
+
+  @IsOptional()
   @IsEnum(Status, { message: enumMessage("status", Status) })
   status?: Status;
 
@@ -120,6 +124,10 @@ export class UpdateGeofenceDto {
   @ArrayNotEmpty()
   @IsNumber({ allowNaN: false, allowInfinity: false }, { each: true })
   longitude?: number[];
+
+  @IsOptional()
+  @IsNumber({ allowNaN: false, allowInfinity: false })
+  radius?: number | null;
 
   @ValidateIf((_object, value) => value !== undefined)
   @IsEnum(Status, { message: enumMessage("status", Status) })
