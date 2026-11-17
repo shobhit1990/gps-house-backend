@@ -6,6 +6,7 @@ import {
 } from "../domain/dto/AddVehicleDto";
 import { AddVehicle } from "../domain/entities/mysql/AddVehicle";
 import { Client } from "../domain/entities/mysql/Client";
+import { Device } from "../domain/entities/mysql/Device";
 import { Transporter } from "../domain/entities/mysql/Transporter";
 import { IAddVehicleRepository } from "../domain/repositories/mysql/IAddVehicleRepository";
 import {
@@ -25,17 +26,15 @@ export class AddVehicleService implements IAddVehicleService {
 
   async getAddVehicle(): Promise<AddVehicleResponse[]> {
     const vehicles = await this.vehicleRepository.getAddVehicle();
-    return vehicles.map((vehicle) => this.toResponse(vehicle));
+    return vehicles.map((vehicle) => this.toResponse(vehicle, true));
   }
 
-  async getAddVehicleById(
-    externalId: string,
-  ): Promise<AddVehicleResponse> {
+  async getAddVehicleById(externalId: string): Promise<AddVehicleResponse> {
     const vehicle = await this.vehicleRepository.getAddVehicleById(externalId);
     if (!vehicle) {
       throw new AppError("Vehicle not found", 404);
     }
-    return this.toResponse(vehicle);
+    return this.toResponse(vehicle, true);
   }
 
   async createAddVehicle(
@@ -48,6 +47,14 @@ export class AddVehicleService implements IAddVehicleService {
     });
     if (!client) {
       throw new AppError("Client not found", 404);
+    }
+
+    const device = await em.findOne(Device, {
+      externalId: payload.device,
+      isDeleted: false,
+    });
+    if (!device) {
+      throw new AppError("Device not found", 404);
     }
 
     const transporter = await em.findOne(
@@ -67,6 +74,7 @@ export class AddVehicleService implements IAddVehicleService {
     const vehicle = new AddVehicle();
     this.assignFields(vehicle, payload);
     vehicle.client = client;
+    vehicle.device = device;
     vehicle.transporter = transporter;
     return this.toResponse(
       await this.vehicleRepository.createAddVehicle(vehicle),
@@ -92,6 +100,19 @@ export class AddVehicleService implements IAddVehicleService {
       throw new AppError("Client not found", 404);
     }
 
+    const device =
+      payload.device === undefined
+        ? existing.device
+        : payload.device === null
+          ? null
+          : await em.findOne(Device, {
+              externalId: payload.device,
+              isDeleted: false,
+            });
+    if (typeof payload.device === "string" && !device) {
+      throw new AppError("Device not found", 404);
+    }
+
     const transporter = payload.transporter
       ? await em.findOne(
           Transporter,
@@ -113,6 +134,7 @@ export class AddVehicleService implements IAddVehicleService {
 
     this.assignFields(existing, payload);
     existing.client = client;
+    existing.device = device ?? null;
     existing.transporter = transporter;
     return this.toResponse(
       await this.vehicleRepository.updateAddVehicle(existing),
@@ -143,7 +165,6 @@ export class AddVehicleService implements IAddVehicleService {
     if (payload.overspeed !== undefined) vehicle.overspeed = payload.overspeed;
     if (payload.hours !== undefined) vehicle.hours = payload.hours;
     if (payload.minutes !== undefined) vehicle.minutes = payload.minutes;
-    if (payload.device !== undefined) vehicle.device = payload.device;
     if (payload.subscriptionStartDate !== undefined) {
       vehicle.subscriptionStartDate = new Date(payload.subscriptionStartDate);
     }
@@ -183,7 +204,10 @@ export class AddVehicleService implements IAddVehicleService {
     if (payload.reason !== undefined) vehicle.reason = payload.reason;
   }
 
-  private toResponse(vehicle: AddVehicle): AddVehicleResponse {
+  private toResponse(
+    vehicle: AddVehicle,
+    includeRelationshipDetails = false,
+  ): AddVehicleResponse {
     return {
       id: vehicle.externalId,
       vehicle: vehicle.vehicle,
@@ -192,18 +216,120 @@ export class AddVehicleService implements IAddVehicleService {
       overspeed: vehicle.overspeed,
       hours: vehicle.hours ?? null,
       minutes: vehicle.minutes ?? null,
-      client: {
-        id: vehicle.client.externalId,
-        name: vehicle.client.name,
-        companyName: vehicle.client.companyName,
-      },
-      device: vehicle.device,
-      transporter: {
-        id: vehicle.transporter.externalId,
-        userName: vehicle.transporter.userName,
-        name: vehicle.transporter.name,
-        companyName: vehicle.transporter.companyName,
-      },
+      client: includeRelationshipDetails
+        ? {
+            id: vehicle.client.externalId,
+            userName: vehicle.client.userName,
+            name: vehicle.client.name ?? null,
+            companyName: vehicle.client.companyName,
+            email: vehicle.client.email ?? null,
+            phone: vehicle.client.phone?.toString() ?? null,
+            address: vehicle.client.address ?? null,
+            owner: vehicle.client.owner_name
+              ? {
+                  id: vehicle.client.owner_name.externalId,
+                  ownerName: vehicle.client.owner_name.ownerName,
+                }
+              : null,
+            language: {
+              id: vehicle.client.language.externalId,
+              languageName: vehicle.client.language.languageName,
+            },
+            timezone: {
+              id: vehicle.client.timezone.externalId,
+              timeZone: vehicle.client.timezone.timeZone,
+            },
+            clientImage: vehicle.client.clientImage ?? null,
+            imeiNumber: vehicle.client.imeiNumber ?? null,
+            status: vehicle.client.status,
+            reason: vehicle.client.reason ?? null,
+          }
+        : {
+            id: vehicle.client.externalId,
+            name: vehicle.client.name,
+            companyName: vehicle.client.companyName,
+          },
+      device:
+        vehicle.device && !vehicle.device.isDeleted
+          ? includeRelationshipDetails
+            ? {
+                id: vehicle.device.externalId,
+                imei: vehicle.device.imei,
+                simNumber: vehicle.device.simNumber,
+                simOperator: vehicle.device.simOperator,
+                secondarySimNumber: vehicle.device.secondarySimNumber ?? null,
+                secondarySimOperator:
+                  vehicle.device.secondarySimOperator ?? null,
+                deviceType: {
+                  id: vehicle.device.deviceType.externalId,
+                  deviceName: vehicle.device.deviceType.deviceName,
+                },
+                client: {
+                  id: vehicle.device.client.externalId,
+                  name: vehicle.device.client.name ?? null,
+                  companyName: vehicle.device.client.companyName,
+                },
+                status: vehicle.device.status,
+                reason: vehicle.device.reason ?? null,
+                ignitionWireConnected: vehicle.device.ignitionWireConnected,
+                ignitionWireNotConnected:
+                  vehicle.device.ignitionWireNotConnected,
+                airConditionWireConnected:
+                  vehicle.device.airConditionWireConnected,
+                attendance: vehicle.device.attendance,
+                timezoneSetting: vehicle.device.timezoneSetting,
+                createdAt: vehicle.device.createdAt,
+                updatedAt: vehicle.device.updatedAt,
+              }
+            : {
+                id: vehicle.device.externalId,
+                imei: vehicle.device.imei,
+              }
+          : null,
+      transporter: includeRelationshipDetails
+        ? {
+            id: vehicle.transporter.externalId,
+            userName: vehicle.transporter.userName,
+            name: vehicle.transporter.name ?? null,
+            companyName: vehicle.transporter.companyName,
+            client: {
+              id: vehicle.transporter.client.externalId,
+              name: vehicle.transporter.client.name ?? null,
+              companyName: vehicle.transporter.client.companyName,
+            },
+            language: {
+              id: vehicle.transporter.language.externalId,
+              languageName: vehicle.transporter.language.languageName,
+            },
+            timezone: {
+              id: vehicle.transporter.timezone.externalId,
+              timeZone: vehicle.transporter.timezone.timeZone,
+            },
+            inactiveTime: vehicle.transporter.inactiveTime,
+            email: vehicle.transporter.email ?? null,
+            phone: vehicle.transporter.phone?.toString() ?? null,
+            address: vehicle.transporter.address ?? null,
+            subscriptionStartDate:
+              vehicle.transporter.subscriptionStartDate ?? null,
+            subscriptionDueDate:
+              vehicle.transporter.subscriptionDueDate ?? null,
+            subscriptionExtendDate: vehicle.transporter.subscriptionExtendDate,
+            subscriptionExpiryCount:
+              vehicle.transporter.subscriptionExpiryCount ?? null,
+            maximumRadiusForNearestPOI:
+              vehicle.transporter.maximumRadiusForNearestPOI ?? null,
+            minimumDistanceForAddress:
+              vehicle.transporter.minimumDistanceForAddress ?? null,
+            dataRestriction: vehicle.transporter.dataRestriction ?? null,
+            status: vehicle.transporter.status,
+            reason: vehicle.transporter.reason ?? null,
+          }
+        : {
+            id: vehicle.transporter.externalId,
+            userName: vehicle.transporter.userName,
+            name: vehicle.transporter.name,
+            companyName: vehicle.transporter.companyName,
+          },
       subscriptionStartDate: vehicle.subscriptionStartDate,
       subscriptionDueDate: vehicle.subscriptionDueDate,
       fuelType: vehicle.fuelType ?? null,

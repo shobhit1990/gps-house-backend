@@ -28,8 +28,12 @@ import vehicleConfigRoutes from "./vehicleConfigRoutes";
 import certificateAddRoutes from "./certificateAddRoutes";
 import transferCoinRoutes from "./transferCoinRoutes";
 import masterRoutes from "./masterRoutes";
+import geofTypeRoutes from "./GeofTypeRoutes";
+import geofenceRoutes from "./GeofenceRoutes";
+import licenseRoutes from "./licenseRoutes";
+import driverDetailRoutes from "./driverDetailRoutes";
 
-import authRoutes from "./authRoutes"
+import authRoutes from "./authRoutes";
 import { authenticateUser } from "../../middlewares/userAuthentication";
 
 const router = express.Router();
@@ -63,6 +67,10 @@ router.use("/vehicleConfig", vehicleConfigRoutes);
 router.use("/certificateAdd", certificateAddRoutes);
 router.use("/transferCoin", transferCoinRoutes);
 router.use("/master", masterRoutes);
+router.use("/geofType", geofTypeRoutes);
+router.use("/geofence", authenticateUser, geofenceRoutes);
+router.use("/license", authenticateUser, licenseRoutes);
+router.use("/driverDetail", driverDetailRoutes);
 
 router.use("/auth", authRoutes);
 

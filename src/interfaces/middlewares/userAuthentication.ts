@@ -49,6 +49,7 @@ export const authenticateUser = asyncHandler(
     }
 
     (req as CustomRequest).userId = user.id;
+    (req as CustomRequest).userExternalId = user.externalId;
     next();
   },
 );

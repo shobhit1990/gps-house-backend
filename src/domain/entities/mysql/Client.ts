@@ -46,7 +46,7 @@ export class Client {
     @Property({ nullable: true, unique: true})
     email?: string;
 
-    @Property({ nullable: false })
+    @Property({ nullable: true })
     name?: string;
 
     @Property({ nullable: true, unique: true, type: "bigint" })

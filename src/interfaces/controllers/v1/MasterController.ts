@@ -17,6 +17,10 @@ import { IUserService } from "../../../services/interfaces/IUserService";
 import { IAddGroupService } from "../../../services/interfaces/IAddGroupService";
 import { IAlertService } from "../../../services/interfaces/IAlertService";
 import { IMasterLocationService } from "../../../services/interfaces/IMasterLocationService";
+import { IDeviceService } from "../../../services/interfaces/IDeviceService";
+import { IGeofTypeService } from "../../../services/interfaces/IGeofTypeService";
+import { IGeofenceService } from "../../../services/interfaces/IGeofenceService";
+import { ILicenseService } from "../../../services/interfaces/ILicenseService";
 
 @injectable()
 export class MasterController {
@@ -60,8 +64,20 @@ export class MasterController {
     @inject("IAlertService")
     private readonly alertService: IAlertService,
 
+    @inject("IDeviceService")
+    private readonly deviceService: IDeviceService,
+
     @inject("IMasterLocationService")
     private readonly masterLocationService: IMasterLocationService,
+
+    @inject("IGeofTypeService")
+    private readonly geofTypeService: IGeofTypeService,
+
+    @inject("IGeofenceService")
+    private readonly geofenceService: IGeofenceService,
+
+    @inject("ILicenseService")
+    private readonly licenseService: ILicenseService,
   ) {}
 
   getMasterOwnerList = asyncHandler(
@@ -168,6 +184,15 @@ export class MasterController {
     },
   );
 
+  getMasterDeviceList = asyncHandler(async (req: Request, res: Response) => {
+    const deviceList = await this.deviceService.getDevices();
+
+    res.status(200).json({
+      data: deviceList,
+      message: "Device list fetched successfully",
+    });
+  });
+
   getMasterExpenseTypeList = asyncHandler(
     async (req: Request, res: Response) => {
       const expenseTypeList = await this.expenseTypeService.getExpenseTypes();
@@ -214,6 +239,32 @@ export class MasterController {
     res.status(200).json({
       data: alertList,
       message: "Alert list fetched successfully",
+    });
+  });
+
+  getMasterGeofTypeList = asyncHandler(async (req: Request, res: Response) => {
+    const typeList = await this.geofTypeService.getGeofType();
+
+    res.status(200).json({
+      data: typeList,
+      message: "GeofType list fetched successfully",
+    });
+  });
+
+  getMasterGeofenceList = asyncHandler(async (req: Request, res: Response) => {
+    const List = await this.geofenceService.getGeofences();
+
+    res.status(200).json({
+      data: List,
+      message: "Geofence list fetched successfully",
+    });
+  });
+
+  getMasterLicenseList = asyncHandler(async (_req: Request, res: Response) => {
+    const licenseList = await this.licenseService.getLicenses();
+    res.status(200).json({
+      data: licenseList,
+      message: "License list fetched successfully",
     });
   });
 }

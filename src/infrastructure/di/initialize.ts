@@ -6,7 +6,7 @@ import { logger } from "../../configs/logger";
 import { MikroORM } from "@mikro-orm/core";
 import mysqlConfig from "../../mikro-orm.mysql.config";
 import mongoConfig from "../../mikro-orm.mongo.config";
-import { MySqlDriver } from "@mikro-orm/mysql";
+import { MySqlDriver, SqlEntityManager } from "@mikro-orm/mysql";
 import { MongoDriver } from "@mikro-orm/mongodb";
 import { registerOwnerDependencies } from "./mysql/owner-container";
 import { registerLanguageDependencies } from "./mysql/language-container";
@@ -38,6 +38,11 @@ import { registerVehicleConfigDependencies } from "./mysql/vehicleConfig-contain
 import { registerMasterLocationDependencies } from "./mysql/masterLocation-container";
 import { registerCertificateAddDependencies } from "./mysql/certificateAdd-container";
 import { registerTransferCoinDependencies } from "./mysql/transferCoin-container";
+import { registerGeofTypeDependencies } from "./mysql/geofType-container";
+import { registerGeofenceDependencies } from "./mysql/geofence-container";
+import { registerLicenseDependencies } from "./mysql/license-container";
+import { registerDriverDetailDependencies } from "./mysql/driverDetail-container";
+import { DatabaseSeeder } from "../persistence/seeders/DatabaseSeeder";
 
 export async function initializeApp() {
   try {
@@ -73,6 +78,10 @@ export async function initializeApp() {
     registerMasterLocationDependencies();
     registerCertificateAddDependencies();
     registerTransferCoinDependencies();
+    registerGeofTypeDependencies();
+    registerGeofenceDependencies();
+    registerLicenseDependencies();
+    registerDriverDetailDependencies();
 
     const orm = await initializeORM();
 
@@ -103,19 +112,17 @@ export async function initializeORM(): Promise<{
     await schemaGenerator.ensureDatabase();
     await mySqlOrm.getMigrator().up();
     await schemaGenerator.updateSchema();
-
     logger.info("MySQL MikroORM initialized successfully");
 
-    let mongoOrm: MikroORM<MongoDriver> | undefined;
-    try {
-      mongoOrm = await MikroORM.init<MongoDriver>(mongoConfig);
-      await mongoOrm.getSchemaGenerator().ensureIndexes();
-      logger.info("MongoDB MikroORM initialized successfully");
-    } catch (mongoError) {
-      logger.error(
-        "Error initializing MongoDB MikroORM. Continuing without MongoDB:",
-        mongoError,
-      );
+    const mongoOrm = await MikroORM.init<MongoDriver>(mongoConfig);
+    await mongoOrm.getSchemaGenerator().ensureIndexes();
+    logger.info("MongoDB MikroORM initialized successfully");
+
+    if (process.env.NODE_ENV === "development") {
+      logger.info("Seeders skipped in development");
+    } else {
+      await runSeeders(mySqlOrm);
+      logger.info("Seeders executed successfully");
     }
 
     return { mySqlOrm, mongoOrm };
@@ -123,4 +130,14 @@ export async function initializeORM(): Promise<{
     logger.error("Error initializing MikroORM:", error);
     throw error;
   }
+
+}
+
+export async function runSeeders(
+  mySqlOrm: MikroORM<MySqlDriver>,
+) {
+  const generator = mySqlOrm.em.fork();
+  const seeder = new DatabaseSeeder();
+
+  await seeder.run(generator);
 }
