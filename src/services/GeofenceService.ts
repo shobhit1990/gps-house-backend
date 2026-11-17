@@ -55,6 +55,7 @@ export class GeofenceService implements IGeofenceService {
     geofence.geofenceCode = payload.geofenceCode;
     geofence.transitTime = payload.transitTime;
     geofence.shapes = payload.shapes;
+    geofence.geoType = payload.geoType;
     geofence.latitude = [...payload.latitude];
     geofence.longitude = [...payload.longitude];
     geofence.status = payload.status ?? Status.ACTIVE;
@@ -101,6 +102,9 @@ export class GeofenceService implements IGeofenceService {
     }
     if (payload.shapes !== undefined) {
       geofence.shapes = payload.shapes;
+    }
+    if (payload.geoType !== undefined) {
+      geofence.geoType = payload.geoType;
     }
     if (payload.latitude !== undefined) {
       geofence.latitude = [...payload.latitude];
@@ -176,16 +180,6 @@ export class GeofenceService implements IGeofenceService {
     if (!user) {
       throw new AppError("User not found", 401);
     }
-
-    const actor = await em.findOne(Client, {
-      externalId: user.externalId,
-      isDeleted: false,
-      status: Status.ACTIVE,
-    });
-    if (!actor) {
-      throw new AppError("Client profile not found", 401);
-    }
-    return actor;
   }
 
   private toResponse(geofence: Geofence): GeofenceResponse {
@@ -200,6 +194,7 @@ export class GeofenceService implements IGeofenceService {
       geofenceCode: geofence.geofenceCode ?? null,
       transitTime: geofence.transitTime ?? null,
       shapes: geofence.shapes ?? null,
+      geoType: geofence.geoType ?? null,
       latitude: geofence.latitude,
       longitude: geofence.longitude,
       status: geofence.status ?? null,

@@ -14,6 +14,7 @@ import { TransitTime } from "../../enums/TransitTime";
 import { Client } from "./Client";
 import { GeofType } from "./GeofType";
 import { GeofAssignType } from "../../enums/GeofAssignType";
+import { GeoType } from "../../enums/GeoType";
 import { Shapes } from "../../enums/Shapes";
 
 @Entity({ tableName: "geofence" })
@@ -46,6 +47,9 @@ export class Geofence {
 
   @Enum({ items: () => Shapes, nullable: true })
   shapes?: Shapes;
+
+  @Enum({ items: () => GeoType, nullable: true })
+  geoType?: GeoType;
 
   @Property({ type: "json", nullable: false })
   latitude!: number[];
