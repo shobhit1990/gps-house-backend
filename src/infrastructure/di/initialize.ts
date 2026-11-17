@@ -1,5 +1,4 @@
 import "reflect-metadata";
-import { createDatabaseIfNotExists } from "./mysql/database";
 import { registerMySqlDependencies } from "./mysql/container";
 import { registerMongoDependencies } from "./mongo/container";
 import { logger } from "../../configs/logger";
@@ -46,8 +45,6 @@ import { DatabaseSeeder } from "../persistence/seeders/DatabaseSeeder";
 
 export async function initializeApp() {
   try {
-    await createDatabaseIfNotExists();
-
     registerOwnerDependencies();
     registerLanguageDependencies();
     registerTimeZoneDependencies();
@@ -109,7 +106,6 @@ export async function initializeORM(): Promise<{
   try {
     const mySqlOrm = await MikroORM.init<MySqlDriver>(mysqlConfig);
     const schemaGenerator = mySqlOrm.getSchemaGenerator();
-    await schemaGenerator.ensureDatabase();
     await mySqlOrm.getMigrator().up();
     await schemaGenerator.updateSchema();
     logger.info("MySQL MikroORM initialized successfully");
