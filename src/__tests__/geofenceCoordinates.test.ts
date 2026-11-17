@@ -66,6 +66,7 @@ const createPayload = (latitude: number[], longitude: number[]) =>
     type: "type-id",
     assignType: "client",
     shapes: "polygon",
+    geoType: "geofence",
     latitude,
     longitude,
   });
@@ -104,6 +105,7 @@ describe("Geofence coordinate arrays", () => {
       name: "Test geofence",
       type: "type-id",
       assignType: "client",
+      geoType: "geofence",
       latitude: [10],
       longitude: [20],
     });
@@ -114,6 +116,7 @@ describe("Geofence coordinate arrays", () => {
       type: "type-id",
       assignType: "client",
       shapes: "circle",
+      geoType: "geofence",
       latitude: [10],
       longitude: [20],
     });
@@ -124,6 +127,7 @@ describe("Geofence coordinate arrays", () => {
       type: "type-id",
       assignType: "client",
       shapes: "hexagon",
+      geoType: "geofence",
       latitude: [10],
       longitude: [20],
     });
@@ -144,6 +148,58 @@ describe("Geofence coordinate arrays", () => {
 
     const result = await service.updateGeofence("geofence-id", dto);
     expect(result.shapes).toBe("rectangle");
+    expect(repository.updateGeofence).toHaveBeenCalledTimes(1);
+  });
+
+  test("create requires a supported geoType enum value", async () => {
+    const { service, repository } = makeService();
+    const missingGeoType = plainToInstance(CreateGeofenceDto, {
+      name: "Test geofence",
+      type: "type-id",
+      assignType: "client",
+      shapes: "polygon",
+      latitude: [10],
+      longitude: [20],
+    });
+    expect(await validate(missingGeoType)).not.toEqual([]);
+
+    const validAnywhere = plainToInstance(CreateGeofenceDto, {
+      name: "Test geofence",
+      type: "type-id",
+      assignType: "client",
+      shapes: "polygon",
+      geoType: "anywhere",
+      latitude: [10],
+      longitude: [20],
+    });
+    expect(await validate(validAnywhere)).toEqual([]);
+
+    const invalidGeoType = plainToInstance(CreateGeofenceDto, {
+      name: "Test geofence",
+      type: "type-id",
+      assignType: "client",
+      shapes: "polygon",
+      geoType: "radius",
+      latitude: [10],
+      longitude: [20],
+    });
+    expect(
+      (await validate(invalidGeoType)).map(({ property }) => property),
+    ).toContain("geoType");
+    expect(repository.createGeofence).not.toHaveBeenCalled();
+
+    const dto = createPayload([10], [20]);
+    const result = await service.createGeofence(dto);
+    expect(result.geoType).toBe("geofence");
+  });
+
+  test("update accepts a supported geoType value", async () => {
+    const { service, repository } = makeService();
+    const dto = plainToInstance(UpdateGeofenceDto, { geoType: "anywhere" });
+    expect(await validate(dto)).toEqual([]);
+
+    const result = await service.updateGeofence("geofence-id", dto);
+    expect(result.geoType).toBe("anywhere");
     expect(repository.updateGeofence).toHaveBeenCalledTimes(1);
   });
 

@@ -13,6 +13,7 @@ import {
 import { Status } from "../enums/status";
 import { TransitTime } from "../enums/TransitTime";
 import { GeofAssignType } from "../enums/GeofAssignType";
+import { GeoType } from "../enums/GeoType";
 import { Shapes } from "../enums/Shapes";
 
 const enumMessage = (name: string, values: object) =>
@@ -47,6 +48,9 @@ export class CreateGeofenceDto {
 
   @IsEnum(Shapes, { message: enumMessage("shapes", Shapes) })
   shapes!: Shapes;
+
+  @IsEnum(GeoType, { message: enumMessage("geoType", GeoType) })
+  geoType!: GeoType;
 
   @IsArray()
   @ArrayNotEmpty()
@@ -100,6 +104,10 @@ export class UpdateGeofenceDto {
   @IsOptional()
   @IsEnum(Shapes, { message: enumMessage("shapes", Shapes) })
   shapes?: Shapes;
+
+  @IsOptional()
+  @IsEnum(GeoType, { message: enumMessage("geoType", GeoType) })
+  geoType?: GeoType;
 
   @IsOptional()
   @IsArray()

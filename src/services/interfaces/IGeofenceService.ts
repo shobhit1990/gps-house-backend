@@ -3,6 +3,7 @@ import {
   UpdateGeofenceDto,
 } from "../../domain/dto/GeofenceDto";
 import { GeofAssignType } from "../../domain/enums/GeofAssignType";
+import { GeoType } from "../../domain/enums/GeoType";
 import { Status } from "../../domain/enums/status";
 import { TransitTime } from "../../domain/enums/TransitTime";
 import { Shapes } from "../../domain/enums/Shapes";
@@ -18,6 +19,7 @@ export interface GeofenceResponse {
   geofenceCode: string | null;
   transitTime: TransitTime | null;
   shapes: Shapes | null;
+  geoType: GeoType | null;
   latitude: number[];
   longitude: number[];
   status: Status | null;

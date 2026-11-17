@@ -82,10 +82,10 @@ router.get(
 
 router.get("/alert", masterController.getMasterAlertList);
 
-router.get("/geofType",authenticateUser, masterController.getMasterGeofTypeList);
+router.get("/geofType", masterController.getMasterGeofTypeList);
 
-router.get("/geofence", authenticateUser, masterController.getMasterGeofenceList);
+router.get("/geofence", masterController.getMasterGeofenceList);
 
-router.get("/license", authenticateUser, masterController.getMasterLicenseList);
+router.get("/license", masterController.getMasterLicenseList);
 
 export default router;
