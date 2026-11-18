@@ -10,13 +10,11 @@ import { Device } from "../domain/entities/mysql/Device";
 import { Transporter } from "../domain/entities/mysql/Transporter";
 import {
   IAddVehicleRepository,
-  SubscriptionExpiredFilter,
+  SubscriptionReportFilter,
 } from "../domain/repositories/mysql/IAddVehicleRepository";
-import { Status } from "../domain/enums/status";
 import {
   AddVehicleResponse,
   IAddVehicleService,
-  SubscriptionExpiredReportItem,
 } from "./interfaces/IAddVehicleService";
 import { AppError } from "../utils/errors";
 
@@ -43,8 +41,26 @@ export class AddVehicleService implements IAddVehicleService {
   }
 
   async getSubscriptionExpiredReport(
-    filter: SubscriptionExpiredFilter,
-  ): Promise<SubscriptionExpiredReportItem[]> {
+    filter: SubscriptionReportFilter,
+  ): Promise<AddVehicleResponse[]> {
+    await this.validateReportFilter(filter);
+    const vehicles =
+      await this.vehicleRepository.getSubscriptionExpired(filter);
+    return vehicles.map((vehicle) => this.toResponse(vehicle, true));
+  }
+
+  async getSubscriptionChangedReport(
+    filter: SubscriptionReportFilter,
+  ): Promise<AddVehicleResponse[]> {
+    await this.validateReportFilter(filter);
+    const vehicles =
+      await this.vehicleRepository.getSubscriptionChanged(filter);
+    return vehicles.map((vehicle) => this.toResponse(vehicle, true));
+  }
+
+  private async validateReportFilter(
+    filter: SubscriptionReportFilter,
+  ): Promise<void> {
     if (filter.clientExternalId) {
       const client = await this.em.fork().findOne(Client, {
         externalId: filter.clientExternalId,
@@ -64,22 +80,6 @@ export class AddVehicleService implements IAddVehicleService {
         throw new AppError("Transporter not found", 404);
       }
     }
-
-    const vehicles =
-      await this.vehicleRepository.getSubscriptionExpired(filter);
-
-    return vehicles.map((vehicle) => ({
-      id: vehicle.externalId,
-      vehicleNo: vehicle.vehicle,
-      active: vehicle.status === Status.ACTIVE,
-      transporter: {
-        id: vehicle.transporter.externalId,
-        name: vehicle.transporter.name ?? null,
-        companyName: vehicle.transporter.companyName,
-      },
-      subscriptionStartDate: vehicle.subscriptionStartDate,
-      subscriptionDueDate: vehicle.subscriptionDueDate,
-    }));
   }
 
   async createAddVehicle(

@@ -14,6 +14,11 @@ router.get(
   controller.getSubscriptionExpiredReport,
 );
 
+router.get(
+  "/subscription-changed",
+  controller.getSubscriptionChangedReport,
+);
+
 router.post("/", controller.createAddVehicle);
 
 router.put("/update/:externalId", controller.updateAddVehicle);

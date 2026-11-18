@@ -39,17 +39,23 @@ export class AddVehicleController {
 
   getSubscriptionExpiredReport = asyncHandler(
     async (req: Request, res: Response) => {
-      const client = this.parseOptionalQueryString(req.query.client, "client");
-      const transporter = this.parseOptionalQueryString(
-        req.query.transporter,
-        "transporter",
+      const report = await this.vehicleService.getSubscriptionExpiredReport(
+        this.parseReportFilter(req),
       );
-      const report = await this.vehicleService.getSubscriptionExpiredReport({
-        clientExternalId: client,
-        transporterExternalId: transporter,
-      });
       res.status(200).json({
         message: "Subscription expired report fetched successfully",
+        data: report,
+      });
+    },
+  );
+
+  getSubscriptionChangedReport = asyncHandler(
+    async (req: Request, res: Response) => {
+      const report = await this.vehicleService.getSubscriptionChangedReport(
+        this.parseReportFilter(req),
+      );
+      res.status(200).json({
+        message: "Subscription changed report fetched successfully",
         data: report,
       });
     },
@@ -93,6 +99,22 @@ export class AddVehicleController {
       throw new AppError("Invalid vehicle ID", 400);
     }
     return externalId;
+  }
+
+  private parseReportFilter(req: Request): {
+    clientExternalId?: string;
+    transporterExternalId?: string;
+  } {
+    return {
+      clientExternalId: this.parseOptionalQueryString(
+        req.query.client,
+        "client",
+      ),
+      transporterExternalId: this.parseOptionalQueryString(
+        req.query.transporter,
+        "transporter",
+      ),
+    };
   }
 
   private parseOptionalQueryString(

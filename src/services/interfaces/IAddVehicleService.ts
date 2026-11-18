@@ -2,23 +2,9 @@ import {
   CreateAddVehicleDto,
   UpdateAddVehicleDto,
 } from "../../domain/dto/AddVehicleDto";
-import { AddVehicle } from "../../domain/entities/mysql/AddVehicle";
-import { SubscriptionExpiredFilter } from "../../domain/repositories/mysql/IAddVehicleRepository";
+import { SubscriptionReportFilter } from "../../domain/repositories/mysql/IAddVehicleRepository";
 
 export type AddVehicleResponse = Record<string, unknown>;
-
-export type SubscriptionExpiredReportItem = {
-  id: string;
-  vehicleNo: string;
-  active: boolean;
-  transporter: {
-    id: string;
-    name: string | null;
-    companyName: string;
-  };
-  subscriptionStartDate: Date;
-  subscriptionDueDate: Date;
-};
 
 export interface IAddVehicleService {
   getAddVehicle(): Promise<AddVehicleResponse[]>;
@@ -26,8 +12,12 @@ export interface IAddVehicleService {
   getAddVehicleById(externalId: string): Promise<AddVehicleResponse>;
 
   getSubscriptionExpiredReport(
-    filter: SubscriptionExpiredFilter,
-  ): Promise<SubscriptionExpiredReportItem[]>;
+    filter: SubscriptionReportFilter,
+  ): Promise<AddVehicleResponse[]>;
+
+  getSubscriptionChangedReport(
+    filter: SubscriptionReportFilter,
+  ): Promise<AddVehicleResponse[]>;
 
   createAddVehicle(payload: CreateAddVehicleDto): Promise<AddVehicleResponse>;
 

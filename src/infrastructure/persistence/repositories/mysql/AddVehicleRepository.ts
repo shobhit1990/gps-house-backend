@@ -5,7 +5,7 @@ import { AddVehicle } from "../../../../domain/entities/mysql/AddVehicle";
 import { Device } from "../../../../domain/entities/mysql/Device";
 import {
   IAddVehicleRepository,
-  SubscriptionExpiredFilter,
+  SubscriptionReportFilter,
 } from "../../../../domain/repositories/mysql/IAddVehicleRepository";
 import { AppError } from "../../../../utils/errors";
 
@@ -46,7 +46,7 @@ export class AddVehicleRepository implements IAddVehicleRepository {
   }
 
   async getSubscriptionExpired(
-    filter: SubscriptionExpiredFilter,
+    filter: SubscriptionReportFilter,
   ): Promise<AddVehicle[]> {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -55,25 +55,63 @@ export class AddVehicleRepository implements IAddVehicleRepository {
       isDeleted: false,
       subscriptionDueDate: { $lt: today },
     };
+    this.applyClientTransporterFilter(where, filter);
+
+    return this.em.fork().find(AddVehicle, where, {
+      populate: [...populate, ...detailsPopulate],
+      orderBy: { subscriptionDueDate: "ASC" },
+    });
+  }
+
+  async getSubscriptionChanged(
+    filter: SubscriptionReportFilter,
+  ): Promise<AddVehicle[]> {
+    const where: FilterQuery<AddVehicle> = {
+      isDeleted: false,
+    };
+    this.applyClientTransporterFilter(where, filter);
+
+    const vehicles = await this.em.fork().find(AddVehicle, where, {
+      populate: [...populate, ...detailsPopulate],
+      orderBy: { updatedAt: "DESC" },
+    });
+
+    // Subscription "changed" = transporter extend date differs from due date
+    return vehicles.filter((vehicle) => {
+      const due = vehicle.transporter.subscriptionDueDate;
+      const extended = vehicle.transporter.subscriptionExtendDate;
+      if (!extended) return false;
+      if (!due) return true;
+      return this.toDateKey(due) !== this.toDateKey(extended);
+    });
+  }
+
+  private applyClientTransporterFilter(
+    where: FilterQuery<AddVehicle>,
+    filter: SubscriptionReportFilter,
+  ): void {
+    const criteria = where as Record<string, unknown>;
 
     if (filter.clientExternalId) {
-      where.client = {
+      criteria.client = {
         externalId: filter.clientExternalId,
         isDeleted: false,
       };
     }
 
     if (filter.transporterExternalId) {
-      where.transporter = {
+      criteria.transporter = {
         externalId: filter.transporterExternalId,
         isDeleted: false,
       };
     }
+  }
 
-    return this.em.fork().find(AddVehicle, where, {
-      populate: ["client", "transporter"],
-      orderBy: { subscriptionDueDate: "ASC" },
-    });
+  private toDateKey(value: Date | string): string {
+    if (value instanceof Date) {
+      return value.toISOString().slice(0, 10);
+    }
+    return String(value).slice(0, 10);
   }
 
   async createAddVehicle(vehicle: AddVehicle): Promise<AddVehicle> {

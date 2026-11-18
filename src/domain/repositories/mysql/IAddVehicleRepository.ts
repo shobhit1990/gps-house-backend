@@ -1,9 +1,11 @@
 import { AddVehicle } from "../../entities/mysql/AddVehicle";
 
-export interface SubscriptionExpiredFilter {
+export interface SubscriptionReportFilter {
   clientExternalId?: string;
   transporterExternalId?: string;
 }
+
+export type SubscriptionExpiredFilter = SubscriptionReportFilter;
 
 export interface IAddVehicleRepository {
 
@@ -11,7 +13,9 @@ export interface IAddVehicleRepository {
 
   getAddVehicleById(externalId: string): Promise<AddVehicle | null>;
 
-  getSubscriptionExpired(filter: SubscriptionExpiredFilter): Promise<AddVehicle[]>;
+  getSubscriptionExpired(filter: SubscriptionReportFilter): Promise<AddVehicle[]>;
+
+  getSubscriptionChanged(filter: SubscriptionReportFilter): Promise<AddVehicle[]>;
 
   createAddVehicle(vehicle: AddVehicle): Promise<AddVehicle>;
 

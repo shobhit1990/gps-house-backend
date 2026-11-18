@@ -11,8 +11,8 @@ async function startServer() {
     const PORT = Number(process.env.PORT) || 3000;
     const { default: app } = await import("./app");
 
-    const server = app.listen(PORT, "0.0.0.0", () => {
-      logger.info(`Server is running on http://0.0.0.0:${PORT}`);
+    const server = app.listen(PORT, "127.0.0.1", () => {
+      logger.info(`Server is running on http://127.0.0.1:${PORT}`);
     });
 
     process.on("SIGTERM", shutdown);
