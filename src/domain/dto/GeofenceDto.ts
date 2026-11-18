@@ -1,7 +1,5 @@
 import { Transform } from "class-transformer";
 import {
-  ArrayNotEmpty,
-  IsArray,
   IsEnum,
   IsNotEmpty,
   IsNumber,
@@ -52,15 +50,11 @@ export class CreateGeofenceDto {
   @IsEnum(GeoType, { message: enumMessage("geoType", GeoType) })
   geoType!: GeoType;
 
-  @IsArray()
-  @ArrayNotEmpty()
-  @IsNumber({ allowNaN: false, allowInfinity: false }, { each: true })
-  latitude!: number[];
+  @IsNumber({ allowNaN: false, allowInfinity: false })
+  latitude!: number;
 
-  @IsArray()
-  @ArrayNotEmpty()
-  @IsNumber({ allowNaN: false, allowInfinity: false }, { each: true })
-  longitude!: number[];
+  @IsNumber({ allowNaN: false, allowInfinity: false })
+  longitude!: number;
 
   @IsOptional()
   @IsNumber({ allowNaN: false, allowInfinity: false })
@@ -114,16 +108,12 @@ export class UpdateGeofenceDto {
   geoType?: GeoType;
 
   @IsOptional()
-  @IsArray()
-  @ArrayNotEmpty()
-  @IsNumber({ allowNaN: false, allowInfinity: false }, { each: true })
-  latitude?: number[];
+  @IsNumber({ allowNaN: false, allowInfinity: false })
+  latitude?: number;
 
   @IsOptional()
-  @IsArray()
-  @ArrayNotEmpty()
-  @IsNumber({ allowNaN: false, allowInfinity: false }, { each: true })
-  longitude?: number[];
+  @IsNumber({ allowNaN: false, allowInfinity: false })
+  longitude?: number;
 
   @IsOptional()
   @IsNumber({ allowNaN: false, allowInfinity: false })

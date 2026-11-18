@@ -1,8 +1,12 @@
+import { FilterQuery } from "@mikro-orm/core";
 import { EntityManager } from "@mikro-orm/mysql";
 import { injectable } from "tsyringe";
 import { AddVehicle } from "../../../../domain/entities/mysql/AddVehicle";
 import { Device } from "../../../../domain/entities/mysql/Device";
-import { IAddVehicleRepository } from "../../../../domain/repositories/mysql/IAddVehicleRepository";
+import {
+  IAddVehicleRepository,
+  SubscriptionExpiredFilter,
+} from "../../../../domain/repositories/mysql/IAddVehicleRepository";
 import { AppError } from "../../../../utils/errors";
 
 const populate = ["client", "device", "transporter"] as const;
@@ -39,6 +43,37 @@ export class AddVehicleRepository implements IAddVehicleRepository {
         { externalId, isDeleted: false },
         { populate: [...populate, ...detailsPopulate] },
       );
+  }
+
+  async getSubscriptionExpired(
+    filter: SubscriptionExpiredFilter,
+  ): Promise<AddVehicle[]> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const where: FilterQuery<AddVehicle> = {
+      isDeleted: false,
+      subscriptionDueDate: { $lt: today },
+    };
+
+    if (filter.clientExternalId) {
+      where.client = {
+        externalId: filter.clientExternalId,
+        isDeleted: false,
+      };
+    }
+
+    if (filter.transporterExternalId) {
+      where.transporter = {
+        externalId: filter.transporterExternalId,
+        isDeleted: false,
+      };
+    }
+
+    return this.em.fork().find(AddVehicle, where, {
+      populate: ["client", "transporter"],
+      orderBy: { subscriptionDueDate: "ASC" },
+    });
   }
 
   async createAddVehicle(vehicle: AddVehicle): Promise<AddVehicle> {

@@ -20,8 +20,8 @@ export interface GeofenceResponse {
   transitTime: TransitTime | null;
   shapes: Shapes | null;
   geoType: GeoType | null;
-  latitude: number[];
-  longitude: number[];
+  latitude: number;
+  longitude: number;
   radius: number | null;
   status: Status | null;
   reason: string | null;

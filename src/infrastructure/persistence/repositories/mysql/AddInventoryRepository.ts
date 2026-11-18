@@ -56,6 +56,81 @@ export class AddInventoryRepository implements IAddInventoryRepository {
     return inventory;
   }
 
+  async bulkCreateAddInventories(
+    inventories: AddInventory[],
+  ): Promise<{ insertedRecords: number; duplicateRecords: number }> {
+    if (inventories.length === 0) {
+      return { insertedRecords: 0, duplicateRecords: 0 };
+    }
+
+    const em = this.em.fork();
+    return em.transactional(async (transactionalEm) => {
+      const imeiValues = [
+        ...new Set(
+          inventories
+            .map((inventory) => inventory.imei?.trim())
+            .filter((imei): imei is string => Boolean(imei)),
+        ),
+      ];
+      const existingImei = imeiValues.length
+        ? await transactionalEm.find(AddInventory, {
+            imei: { $in: imeiValues },
+            isDeleted: false,
+          })
+        : [];
+      const existingImeiSet = new Set(
+        existingImei
+          .map((inventory) => inventory.imei?.trim().toLowerCase())
+          .filter((imei): imei is string => Boolean(imei)),
+      );
+
+      const newRecords: AddInventory[] = [];
+      let duplicateRecords = 0;
+      for (const inventory of inventories) {
+        const imeiKey = inventory.imei?.trim().toLowerCase();
+        if (imeiKey && existingImeiSet.has(imeiKey)) {
+          duplicateRecords += 1;
+          continue;
+        }
+        if (imeiKey) existingImeiSet.add(imeiKey);
+
+        inventory.deviceType = transactionalEm.getReference(
+          DeviceType,
+          inventory.deviceType.id,
+        );
+        if (inventory.client) {
+          inventory.client = transactionalEm.getReference(
+            Client,
+            inventory.client.id,
+          );
+        }
+        if (inventory.technician) {
+          inventory.technician = transactionalEm.getReference(
+            Technician,
+            inventory.technician.id,
+          );
+        }
+        if (inventory.createdBy) {
+          inventory.createdBy = transactionalEm.getReference(
+            Client,
+            inventory.createdBy.id,
+          );
+        }
+        newRecords.push(inventory);
+      }
+
+      if (newRecords.length > 0) {
+        transactionalEm.persist(newRecords);
+        await transactionalEm.flush();
+      }
+
+      return {
+        insertedRecords: newRecords.length,
+        duplicateRecords,
+      };
+    });
+  }
+
   async updateAddInventory(inventory: AddInventory): Promise<AddInventory> {
     const em = this.em.fork();
     const existing = await em.findOne(

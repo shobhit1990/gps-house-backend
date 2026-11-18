@@ -27,6 +27,65 @@ export class DriverDetailController {
     });
   });
 
+  downloadDriverDetailExport = asyncHandler(
+    async (_req: Request, res: Response) => {
+      const workbook = await this.driverDetailService.getDriverDetailExport();
+      res.status(200).set({
+        "Content-Type":
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "Content-Disposition":
+          'attachment; filename="driver-detail-export.xlsx"',
+        "Content-Length": String(workbook.length),
+        "Cache-Control": "no-store",
+        "X-Content-Type-Options": "nosniff",
+      });
+      res.end(workbook);
+    },
+  );
+
+  bulkUploadDriverDetails = asyncHandler(
+    async (
+      req: CustomRequest & { file?: Express.Multer.File },
+      res: Response,
+    ) => {
+      const client =
+        typeof req.body?.client === "string" ? req.body.client.trim() : "";
+      const transporter =
+        typeof req.body?.transporter === "string"
+          ? req.body.transporter.trim()
+          : "";
+
+      if (!req.file) {
+        res.status(400).json({
+          success: false,
+          message: "Driver detail upload validation failed",
+          totalRecords: 0,
+          insertedRecords: 0,
+          duplicateRecords: 0,
+          failedRecords: 0,
+          errors: [
+            {
+              row: 1,
+              column: "file",
+              message: "Excel file is required in the 'file' field",
+            },
+          ],
+        });
+        return;
+      }
+
+      const result = await this.driverDetailService.bulkUploadDriverDetails(
+        req.file.originalname,
+        req.file.buffer,
+        client,
+        transporter,
+        req.userExternalId,
+      );
+      const { httpStatus, ...response } = result;
+      res.status(httpStatus).json(response);
+    },
+  );
+
   getDriverDetailById = asyncHandler(async (req: Request, res: Response) => {
     const detail = await this.driverDetailService.getDriverDetailById(
       this.getExternalId(req),

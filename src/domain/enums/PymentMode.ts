@@ -1,4 +1,4 @@
 export enum PaymentMode {
-  ONLINE = "online",
-  CASH = "cash"
+  ONLINE = "Online",
+  CASH = "Cash"
 }

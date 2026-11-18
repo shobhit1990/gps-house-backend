@@ -37,6 +37,24 @@ export class AddVehicleController {
     },
   );
 
+  getSubscriptionExpiredReport = asyncHandler(
+    async (req: Request, res: Response) => {
+      const client = this.parseOptionalQueryString(req.query.client, "client");
+      const transporter = this.parseOptionalQueryString(
+        req.query.transporter,
+        "transporter",
+      );
+      const report = await this.vehicleService.getSubscriptionExpiredReport({
+        clientExternalId: client,
+        transporterExternalId: transporter,
+      });
+      res.status(200).json({
+        message: "Subscription expired report fetched successfully",
+        data: report,
+      });
+    },
+  );
+
   createAddVehicle = asyncHandler(async (req: Request, res: Response) => {
     const dto = plainToInstance(CreateAddVehicleDto, req.body, {
       enableImplicitConversion: true,
@@ -77,10 +95,24 @@ export class AddVehicleController {
     return externalId;
   }
 
+  private parseOptionalQueryString(
+    value: unknown,
+    fieldName: string,
+  ): string | undefined {
+    if (value === undefined || value === null || value === "") {
+      return undefined;
+    }
+    const raw = Array.isArray(value) ? value[0] : value;
+    if (typeof raw !== "string" || !raw.trim()) {
+      throw new AppError(`Invalid ${fieldName}`, 400);
+    }
+    return raw.trim();
+  }
+
   private async validateDto(dto: object): Promise<void> {
     const errors = await validate(dto, {
       whitelist: true,
-      forbidNonWhitelisted: true,
+      forbidNonWhitelisted: false,
     });
     if (errors.length) {
       throw new AppError(

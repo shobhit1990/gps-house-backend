@@ -39,8 +39,35 @@ export interface DriverDetailResponse {
   updatedAt: Date;
 }
 
+export interface DriverDetailBulkUploadError {
+  row: number;
+  column: string;
+  message: string;
+}
+
+export interface DriverDetailBulkUploadResult {
+  httpStatus: number;
+  success: boolean;
+  message: string;
+  totalRecords: number;
+  insertedRecords: number;
+  duplicateRecords: number;
+  failedRecords: number;
+  errors: DriverDetailBulkUploadError[];
+}
+
 export interface IDriverDetailService {
   getDriverDetails(): Promise<DriverDetailResponse[]>;
+
+  getDriverDetailExport(): Promise<Buffer>;
+
+  bulkUploadDriverDetails(
+    fileName: string,
+    fileBuffer: Buffer,
+    clientExternalId: string,
+    transporterExternalId: string,
+    actorExternalId?: string,
+  ): Promise<DriverDetailBulkUploadResult>;
 
   getDriverDetailById(externalId: string): Promise<DriverDetailResponse>;
 
