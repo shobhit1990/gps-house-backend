@@ -67,10 +67,17 @@ export class TransporterController {
         }
 
 
-        await this.transporterService.createTransporter(dto, req.userId);
+        const created = await this.transporterService.createTransporter(
+            dto,
+            req.userId,
+        );
+        const transporter = await this.transporterService.getTransporterById(
+            created.externalId,
+        );
 
         res.status(201).json({
             message: "Transporter created successfully",
+            data: transporter,
         });
     });
 

@@ -28,8 +28,35 @@ export interface AddInventoryResponse {
   updatedAt: Date;
 }
 
+export interface AddInventoryBulkUploadError {
+  row: number;
+  column: string;
+  message: string;
+}
+
+export interface AddInventoryBulkUploadResult {
+  httpStatus: number;
+  success: boolean;
+  message: string;
+  totalRecords: number;
+  insertedRecords: number;
+  duplicateRecords: number;
+  failedRecords: number;
+  errors: AddInventoryBulkUploadError[];
+}
+
 export interface IAddInventoryService {
   getAddInventories(): Promise<AddInventoryResponse[]>;
+
+  getAddInventoryExport(): Promise<Buffer>;
+
+  bulkUploadAddInventories(
+    fileName: string,
+    fileBuffer: Buffer,
+    assignType: string,
+    inventoryType: string | undefined,
+    actorUserId?: number,
+  ): Promise<AddInventoryBulkUploadResult>;
 
   getAddInventoryById(externalId: string): Promise<AddInventoryResponse>;
 

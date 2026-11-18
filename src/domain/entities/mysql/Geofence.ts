@@ -52,10 +52,10 @@ export class Geofence {
   geoType?: GeoType;
 
   @Property({ type: "json", nullable: false })
-  latitude!: number[];
+  latitude!: number;
 
   @Property({ type: "json", nullable: false })
-  longitude!: number[];
+  longitude!: number;
 
   @Property({ type: "double", nullable: true })
   radius?: number | null;

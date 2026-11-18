@@ -42,7 +42,7 @@ export class GeofenceService implements IGeofenceService {
     payload: CreateGeofenceDto,
     actorExternalId?: string,
   ): Promise<GeofenceResponse> {
-    this.validateCoordinatePairs(payload.latitude, payload.longitude);
+    this.validateCoordinates(payload.latitude, payload.longitude);
     const [type, actor] = await Promise.all([
       this.findGeofType(payload.type),
       this.findActor(actorExternalId),
@@ -56,8 +56,8 @@ export class GeofenceService implements IGeofenceService {
     geofence.transitTime = payload.transitTime;
     geofence.shapes = payload.shapes;
     geofence.geoType = payload.geoType;
-    geofence.latitude = [...payload.latitude];
-    geofence.longitude = [...payload.longitude];
+    geofence.latitude = payload.latitude;
+    geofence.longitude = payload.longitude;
     geofence.radius = payload.radius;
     geofence.status = payload.status ?? Status.ACTIVE;
     geofence.reason = payload.reason;
@@ -77,9 +77,9 @@ export class GeofenceService implements IGeofenceService {
     if (!geofence) {
       throw new AppError("Geofence not found", 404);
     }
-    this.validateCoordinatePairs(
-      payload.latitude ?? geofence.latitude,
-      payload.longitude ?? geofence.longitude,
+    this.validateCoordinates(
+      payload.latitude ?? this.toCoordinateNumber(geofence.latitude),
+      payload.longitude ?? this.toCoordinateNumber(geofence.longitude),
     );
 
     const nextTypeId = payload.type;
@@ -108,10 +108,10 @@ export class GeofenceService implements IGeofenceService {
       geofence.geoType = payload.geoType;
     }
     if (payload.latitude !== undefined) {
-      geofence.latitude = [...payload.latitude];
+      geofence.latitude = payload.latitude;
     }
     if (payload.longitude !== undefined) {
-      geofence.longitude = [...payload.longitude];
+      geofence.longitude = payload.longitude;
     }
     if (payload.radius !== undefined) {
       geofence.radius = payload.radius;
@@ -148,23 +148,27 @@ export class GeofenceService implements IGeofenceService {
     return type;
   }
 
-  private validateCoordinatePairs(
-    latitude: number[],
-    longitude: number[],
-  ): void {
-    if (latitude.length !== longitude.length) {
-      throw new AppError(
-        "Latitude and longitude arrays must contain the same number of coordinates",
-        400,
-      );
-    }
-
+  private validateCoordinates(latitude: number, longitude: number): void {
     if (
-      latitude.some((value) => value < -90 || value > 90) ||
-      longitude.some((value) => value < -180 || value > 180)
+      !Number.isFinite(latitude) ||
+      !Number.isFinite(longitude) ||
+      latitude < -90 ||
+      latitude > 90 ||
+      longitude < -180 ||
+      longitude > 180
     ) {
       throw new AppError("Latitude or longitude is out of range", 400);
     }
+  }
+
+  private toCoordinateNumber(value: unknown): number {
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value;
+    }
+    if (Array.isArray(value) && typeof value[0] === "number") {
+      return value[0];
+    }
+    throw new AppError("Latitude or longitude is invalid", 400);
   }
 
   private async findActor(
@@ -184,6 +188,14 @@ export class GeofenceService implements IGeofenceService {
     if (!user) {
       throw new AppError("User not found", 401);
     }
+
+    const actor = await em.findOne(Client, {
+      externalId: user.externalId,
+      isDeleted: false,
+      status: Status.ACTIVE,
+    });
+    return actor ?? undefined;
+   
   }
 
   private toResponse(geofence: Geofence): GeofenceResponse {
@@ -199,8 +211,8 @@ export class GeofenceService implements IGeofenceService {
       transitTime: geofence.transitTime ?? null,
       shapes: geofence.shapes ?? null,
       geoType: geofence.geoType ?? null,
-      latitude: geofence.latitude,
-      longitude: geofence.longitude,
+      latitude: this.toCoordinateNumber(geofence.latitude),
+      longitude: this.toCoordinateNumber(geofence.longitude),
       radius: geofence.radius ?? null,
       status: geofence.status ?? null,
       reason: geofence.reason ?? null,

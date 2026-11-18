@@ -9,6 +9,11 @@ router.get("/getAll", controller.getAddVehicle);
 
 router.get("/getById/:externalId", controller.getAddVehicleById);
 
+router.get(
+  "/subscription-expired",
+  controller.getSubscriptionExpiredReport,
+);
+
 router.post("/", controller.createAddVehicle);
 
 router.put("/update/:externalId", controller.updateAddVehicle);

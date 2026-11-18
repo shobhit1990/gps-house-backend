@@ -8,10 +8,15 @@ import { AddVehicle } from "../domain/entities/mysql/AddVehicle";
 import { Client } from "../domain/entities/mysql/Client";
 import { Device } from "../domain/entities/mysql/Device";
 import { Transporter } from "../domain/entities/mysql/Transporter";
-import { IAddVehicleRepository } from "../domain/repositories/mysql/IAddVehicleRepository";
+import {
+  IAddVehicleRepository,
+  SubscriptionExpiredFilter,
+} from "../domain/repositories/mysql/IAddVehicleRepository";
+import { Status } from "../domain/enums/status";
 import {
   AddVehicleResponse,
   IAddVehicleService,
+  SubscriptionExpiredReportItem,
 } from "./interfaces/IAddVehicleService";
 import { AppError } from "../utils/errors";
 
@@ -35,6 +40,46 @@ export class AddVehicleService implements IAddVehicleService {
       throw new AppError("Vehicle not found", 404);
     }
     return this.toResponse(vehicle, true);
+  }
+
+  async getSubscriptionExpiredReport(
+    filter: SubscriptionExpiredFilter,
+  ): Promise<SubscriptionExpiredReportItem[]> {
+    if (filter.clientExternalId) {
+      const client = await this.em.fork().findOne(Client, {
+        externalId: filter.clientExternalId,
+        isDeleted: false,
+      });
+      if (!client) {
+        throw new AppError("Client not found", 404);
+      }
+    }
+
+    if (filter.transporterExternalId) {
+      const transporter = await this.em.fork().findOne(Transporter, {
+        externalId: filter.transporterExternalId,
+        isDeleted: false,
+      });
+      if (!transporter) {
+        throw new AppError("Transporter not found", 404);
+      }
+    }
+
+    const vehicles =
+      await this.vehicleRepository.getSubscriptionExpired(filter);
+
+    return vehicles.map((vehicle) => ({
+      id: vehicle.externalId,
+      vehicleNo: vehicle.vehicle,
+      active: vehicle.status === Status.ACTIVE,
+      transporter: {
+        id: vehicle.transporter.externalId,
+        name: vehicle.transporter.name ?? null,
+        companyName: vehicle.transporter.companyName,
+      },
+      subscriptionStartDate: vehicle.subscriptionStartDate,
+      subscriptionDueDate: vehicle.subscriptionDueDate,
+    }));
   }
 
   async createAddVehicle(

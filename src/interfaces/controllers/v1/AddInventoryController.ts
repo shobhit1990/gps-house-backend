@@ -27,6 +27,65 @@ export class AddInventoryController {
     });
   });
 
+  downloadAddInventoryExport = asyncHandler(
+    async (_req: Request, res: Response) => {
+      const workbook = await this.inventoryService.getAddInventoryExport();
+      res.status(200).set({
+        "Content-Type":
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "Content-Disposition":
+          'attachment; filename="device-inventory-export.xlsx"',
+        "Content-Length": String(workbook.length),
+        "Cache-Control": "no-store",
+        "X-Content-Type-Options": "nosniff",
+      });
+      res.end(workbook);
+    },
+  );
+
+  bulkUploadAddInventories = asyncHandler(
+    async (
+      req: CustomRequest & { file?: Express.Multer.File },
+      res: Response,
+    ) => {
+      const assignType =
+        typeof req.body?.assignType === "string" ? req.body.assignType : "";
+      const inventoryType =
+        typeof req.body?.inventoryType === "string"
+          ? req.body.inventoryType
+          : undefined;
+
+      if (!req.file) {
+        res.status(400).json({
+          success: false,
+          message: "Inventory upload validation failed",
+          totalRecords: 0,
+          insertedRecords: 0,
+          duplicateRecords: 0,
+          failedRecords: 0,
+          errors: [
+            {
+              row: 1,
+              column: "file",
+              message: "Excel file is required in the 'file' field",
+            },
+          ],
+        });
+        return;
+      }
+
+      const result = await this.inventoryService.bulkUploadAddInventories(
+        req.file.originalname,
+        req.file.buffer,
+        assignType,
+        inventoryType,
+        req.userId,
+      );
+      const { httpStatus, ...response } = result;
+      res.status(httpStatus).json(response);
+    },
+  );
+
   getAddInventoryById = asyncHandler(async (req: Request, res: Response) => {
     const inventory = await this.inventoryService.getAddInventoryById(
       this.getExternalId(req),

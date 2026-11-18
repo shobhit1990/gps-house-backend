@@ -21,7 +21,7 @@ const type = Object.assign(new GeofType(), {
   geofType: "test",
 });
 
-const makeGeofence = (latitude: number[], longitude: number[]) =>
+const makeGeofence = (latitude: number, longitude: number) =>
   Object.assign(new Geofence(), {
     id: 1,
     externalId: "geofence-id",
@@ -33,7 +33,7 @@ const makeGeofence = (latitude: number[], longitude: number[]) =>
     updatedAt: new Date(),
   });
 
-function makeService(latitude = [10], longitude = [20]) {
+function makeService(latitude = 10, longitude = 20) {
   let geofence: Geofence = makeGeofence(latitude, longitude);
   const repository = {
     getGeofences: jest.fn(async () => [geofence]),
@@ -60,7 +60,7 @@ function makeService(latitude = [10], longitude = [20]) {
   };
 }
 
-const createPayload = (latitude: number[], longitude: number[]) =>
+const createPayload = (latitude: number, longitude: number) =>
   plainToInstance(CreateGeofenceDto, {
     name: "Test geofence",
     type: "type-id",
@@ -71,22 +71,15 @@ const createPayload = (latitude: number[], longitude: number[]) =>
     longitude,
   });
 
-describe("Geofence coordinate arrays", () => {
-  test.each([
-    { name: "one coordinate", latitude: [10], longitude: [20] },
-    {
-      name: "multiple coordinates",
-      latitude: [10, 11],
-      longitude: [20, 21],
-    },
-  ])("create validates and returns $name", async ({ latitude, longitude }) => {
+describe("Geofence coordinates", () => {
+  test("create validates and returns coordinates", async () => {
     const { service, repository } = makeService();
-    const dto = createPayload(latitude, longitude);
+    const dto = createPayload(10, 20);
     expect(await validate(dto)).toEqual([]);
 
     const result = await service.createGeofence(dto);
-    expect(result.latitude).toEqual(latitude);
-    expect(result.longitude).toEqual(longitude);
+    expect(result.latitude).toEqual(10);
+    expect(result.longitude).toEqual(20);
     expect(repository.createGeofence).toHaveBeenCalledTimes(1);
   });
 
@@ -106,8 +99,8 @@ describe("Geofence coordinate arrays", () => {
       type: "type-id",
       assignType: "client",
       geoType: "geofence",
-      latitude: [10],
-      longitude: [20],
+      latitude: 10,
+      longitude: 20,
     });
     expect(await validate(missingShapes)).not.toEqual([]);
 
@@ -117,8 +110,8 @@ describe("Geofence coordinate arrays", () => {
       assignType: "client",
       shapes: "circle",
       geoType: "geofence",
-      latitude: [10],
-      longitude: [20],
+      latitude: 10,
+      longitude: 20,
     });
     expect(await validate(validCircle)).toEqual([]);
 
@@ -128,15 +121,15 @@ describe("Geofence coordinate arrays", () => {
       assignType: "client",
       shapes: "hexagon",
       geoType: "geofence",
-      latitude: [10],
-      longitude: [20],
+      latitude: 10,
+      longitude: 20,
     });
     expect(
       (await validate(invalidShapes)).map(({ property }) => property),
     ).toContain("shapes");
     expect(repository.createGeofence).not.toHaveBeenCalled();
 
-    const dto = createPayload([10], [20]);
+    const dto = createPayload(10, 20);
     const result = await service.createGeofence(dto);
     expect(result.shapes).toBe("polygon");
   });
@@ -158,8 +151,8 @@ describe("Geofence coordinate arrays", () => {
       type: "type-id",
       assignType: "client",
       shapes: "polygon",
-      latitude: [10],
-      longitude: [20],
+      latitude: 10,
+      longitude: 20,
     });
     expect(await validate(missingGeoType)).not.toEqual([]);
 
@@ -169,8 +162,8 @@ describe("Geofence coordinate arrays", () => {
       assignType: "client",
       shapes: "polygon",
       geoType: "anywhere",
-      latitude: [10],
-      longitude: [20],
+      latitude: 10,
+      longitude: 20,
     });
     expect(await validate(validAnywhere)).toEqual([]);
 
@@ -180,15 +173,15 @@ describe("Geofence coordinate arrays", () => {
       assignType: "client",
       shapes: "polygon",
       geoType: "radius",
-      latitude: [10],
-      longitude: [20],
+      latitude: 10,
+      longitude: 20,
     });
     expect(
       (await validate(invalidGeoType)).map(({ property }) => property),
     ).toContain("geoType");
     expect(repository.createGeofence).not.toHaveBeenCalled();
 
-    const dto = createPayload([10], [20]);
+    const dto = createPayload(10, 20);
     const result = await service.createGeofence(dto);
     expect(result.geoType).toBe("geofence");
   });
@@ -239,7 +232,7 @@ describe("Geofence coordinate arrays", () => {
       fork: () => ({ findOne }),
     } as unknown as EntityManager;
 
-    await service.createGeofence(createPayload([10], [20]), "shared-external-id");
+    await service.createGeofence(createPayload(10, 20), "shared-external-id");
 
     expect(repository.createGeofence).toHaveBeenCalledWith(
       expect.objectContaining({ createdBy: actorClient }),
@@ -284,10 +277,7 @@ describe("Geofence coordinate arrays", () => {
 
       if (operation === "create") {
         await expect(
-          service.createGeofence(
-            createPayload([10], [20]),
-            "user-only-external-id",
-          ),
+          service.createGeofence(createPayload(10, 20), "user-only-external-id"),
         ).rejects.toMatchObject(expected);
         expect(repository.createGeofence).not.toHaveBeenCalled();
       } else if (operation === "update") {
@@ -361,34 +351,39 @@ describe("Geofence coordinate arrays", () => {
     expect(repository.updateGeofence).toHaveBeenCalledTimes(1);
   });
 
-  test.each([
-    { name: "one coordinate", latitude: [10], longitude: [20] },
-    {
-      name: "multiple coordinates",
-      latitude: [10, 11],
-      longitude: [20, 21],
-    },
-  ])("update accepts $name", async ({ latitude, longitude }) => {
+  test("update accepts coordinates", async () => {
     const { service, repository } = makeService();
-    const dto = plainToInstance(UpdateGeofenceDto, { latitude, longitude });
+    const dto = plainToInstance(UpdateGeofenceDto, {
+      latitude: 11,
+      longitude: 21,
+    });
     expect(await validate(dto)).toEqual([]);
 
     const result = await service.updateGeofence("geofence-id", dto);
-    expect(result.latitude).toEqual(latitude);
-    expect(result.longitude).toEqual(longitude);
+    expect(result.latitude).toEqual(11);
+    expect(result.longitude).toEqual(21);
     expect(repository.updateGeofence).toHaveBeenCalledTimes(1);
   });
 
-  test.each([
-    ["create", () => createPayload([], [])],
-    ["update", () => plainToInstance(UpdateGeofenceDto, { latitude: [] })],
-  ])("%s rejects empty coordinate arrays", async (_operation, makeDto) => {
-    const errors = await validate(makeDto());
-    expect(errors.length).toBeGreaterThan(0);
+  test("create rejects coordinate arrays", async () => {
+    const errors = await validate(
+      plainToInstance(CreateGeofenceDto, {
+        name: "Test geofence",
+        type: "type-id",
+        assignType: "client",
+        shapes: "polygon",
+        geoType: "geofence",
+        latitude: [10],
+        longitude: [20],
+      }),
+    );
+    expect(errors.map(({ property }) => property)).toEqual(
+      expect.arrayContaining(["latitude", "longitude"]),
+    );
   });
 
   test("coordinate fields may be omitted from update", async () => {
-    const { service, geofence } = makeService([10], [20]);
+    const { service, geofence } = makeService(10, 20);
     const dto = plainToInstance(UpdateGeofenceDto, {});
     expect(await validate(dto)).toEqual([]);
 
@@ -397,29 +392,10 @@ describe("Geofence coordinate arrays", () => {
     expect(result.longitude).toEqual(geofence.longitude);
   });
 
-  test("create rejects arrays with different coordinate counts", async () => {
-    const { service, repository } = makeService();
-    await expect(
-      service.createGeofence(createPayload([10, 11], [20])),
-    ).rejects.toMatchObject({ statusCode: 400 });
-    expect(repository.createGeofence).not.toHaveBeenCalled();
-  });
-
-  test("update rejects coordinates with different counts", async () => {
-    const { service, repository } = makeService([10], [20]);
-    const dto = plainToInstance(UpdateGeofenceDto, {
-      latitude: [10, 11],
-    });
-    await expect(
-      service.updateGeofence("geofence-id", dto),
-    ).rejects.toMatchObject({ statusCode: 400 });
-    expect(repository.updateGeofence).not.toHaveBeenCalled();
-  });
-
   test("rejects coordinates outside latitude or longitude bounds", async () => {
     const { service, repository } = makeService();
     await expect(
-      service.createGeofence(createPayload([91], [20])),
+      service.createGeofence(createPayload(91, 20)),
     ).rejects.toMatchObject({ statusCode: 400 });
     expect(repository.createGeofence).not.toHaveBeenCalled();
   });

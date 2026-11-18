@@ -296,7 +296,7 @@ describe("DriverDetail ManyToMany relation inputs", () => {
   });
 
   test.each(["create", "update", "delete"] as const)(
-    "%s rejects an authenticated User without a matching Client",
+    "%s allows an authenticated User without a matching Client (e.g. admin)",
     async (operation) => {
       const user = Object.assign(new User(), {
         id: 7,
@@ -321,34 +321,33 @@ describe("DriverDetail ManyToMany relation inputs", () => {
         }),
       } as unknown as EntityManager;
 
-      const expected = { statusCode: 401, message: "Client profile not found" };
-
       if (operation === "create") {
-        await expect(
-          service.createDriverDetail(
-            plainToInstance(CreateDriverDetailDto, {
-              client: "client-id",
-              firstName: "Test",
-              lastName: "Driver",
-            }),
-            "user-only-external-id",
-          ),
-        ).rejects.toMatchObject(expected);
-        expect(repository.createDriverDetail).not.toHaveBeenCalled();
+        await service.createDriverDetail(
+          plainToInstance(CreateDriverDetailDto, {
+            client: "client-id",
+            firstName: "Test",
+            lastName: "Driver",
+          }),
+          "user-only-external-id",
+        );
+        expect(repository.createDriverDetail).toHaveBeenCalledWith(
+          expect.objectContaining({ createdBy: undefined }),
+        );
       } else if (operation === "update") {
-        await expect(
-          service.updateDriverDetail(
-            "driver-id",
-            plainToInstance(UpdateDriverDetailDto, { firstName: "Updated" }),
-            "user-only-external-id",
-          ),
-        ).rejects.toMatchObject(expected);
-        expect(repository.updateDriverDetail).not.toHaveBeenCalled();
+        await service.updateDriverDetail(
+          "driver-id",
+          plainToInstance(UpdateDriverDetailDto, { firstName: "Updated" }),
+          "user-only-external-id",
+        );
+        expect(repository.updateDriverDetail).toHaveBeenCalledWith(
+          expect.objectContaining({ updatedBy: undefined }),
+        );
       } else {
-        await expect(
-          service.deleteDriverDetail("driver-id", "user-only-external-id"),
-        ).rejects.toMatchObject(expected);
-        expect(repository.deleteDriverDetail).not.toHaveBeenCalled();
+        await service.deleteDriverDetail("driver-id", "user-only-external-id");
+        expect(repository.deleteDriverDetail).toHaveBeenCalledWith(
+          "driver-id",
+          undefined,
+        );
       }
     },
   );

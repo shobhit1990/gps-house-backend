@@ -1,7 +1,6 @@
 export enum PaymentTerm {
-  MONTHELY = "monthely",
+  MONTHLY = "monthly",
   YEARLY = "yearly",
-  HALFYEARLY = "halfYearly",
-  QUATERLY = "quaterly"
+  HALF_YEARLY = "halfYearly",
+  QUARTERLY = "quarterly",
 }
-            

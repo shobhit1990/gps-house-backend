@@ -66,6 +66,52 @@ export class DriverDetailRepository implements IDriverDetailRepository {
     return driverDetail;
   }
 
+  async bulkCreateDriverDetails(
+    driverDetails: DriverDetail[],
+  ): Promise<{ insertedRecords: number }> {
+    if (driverDetails.length === 0) {
+      return { insertedRecords: 0 };
+    }
+
+    const em = this.em.fork();
+    return em.transactional(async (transactionalEm) => {
+      for (const driverDetail of driverDetails) {
+        driverDetail.client = transactionalEm.getReference(
+          Client,
+          driverDetail.client.id,
+        );
+        if (driverDetail.transporter) {
+          driverDetail.transporter = transactionalEm.getReference(
+            Transporter,
+            driverDetail.transporter.id,
+          );
+        }
+        if (driverDetail.createdBy) {
+          driverDetail.createdBy = transactionalEm.getReference(
+            Client,
+            driverDetail.createdBy.id,
+          );
+        }
+        driverDetail.licenseToDrive.set(
+          driverDetail.licenseToDrive
+            .getItems()
+            .map((license) => transactionalEm.getReference(License, license.id)),
+        );
+        driverDetail.geofences.set(
+          driverDetail.geofences
+            .getItems()
+            .map((geofence) =>
+              transactionalEm.getReference(Geofence, geofence.id),
+            ),
+        );
+      }
+
+      transactionalEm.persist(driverDetails);
+      await transactionalEm.flush();
+      return { insertedRecords: driverDetails.length };
+    });
+  }
+
   async updateDriverDetail(driverDetail: DriverDetail): Promise<DriverDetail> {
     const em = this.em.fork();
     const existing = await em.findOne(
