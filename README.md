@@ -42,3 +42,46 @@ secret.
 
 Menu, master-data, and other API routes are available without role-based
 restrictions.
+
+## Vehicle GPS tracking (listener, live, history)
+
+Ported from dikshank-backend with the same pipeline:
+
+```
+GPS device ──TCP (GT800N/GT801N)──▶ VehicleGpsListener ──▶ Mongo gps_realtime_queue (latest per IMEI)
+                                                       └──▶ Mongo gps_report_queue   (every point)
+gps_realtime_queue ─▶ VehicleGpsDeviceService ─▶ device live columns (MySQL) ─▶ Redis pub/sub ─▶ Socket.IO room
+gps_report_queue   ─▶ VehicleGpsTrackingService ─▶ Mongo vehicleGpsTracking_<month>_<year> (+ _latest), vehicleGpsStatus_<m>_<y>
+```
+
+- A device may log in only when its IMEI is a registered, **active** `device` that is assigned to a
+  non-deleted, non-inactive vehicle (`add_vehicle.device`). Mappings are cached in Redis and refreshed every 5 minutes
+  (`VEHICLE_GPS_IMEI_CACHE_REFRESH_MS`); a new assignment can take up to that long, or 5 minutes of negative cache, to be accepted.
+- History stores moving points only (speed > 0). The live position also updates while parked.
+- Redis is required when GPS is enabled.
+
+### Running
+
+- Development: `APP_RUNTIME_ROLE=all` (default) runs the API, Socket.IO, listeners and both queue stages in one process.
+- Production: `npm run build && pm2 start ecosystem.config.js` starts `api`, `gps-worker` and `gps-report-worker`.
+  Open the TCP ports in `GPS_LISTENERS` (default 5001/5002) on the firewall and point devices at them.
+
+### API (JWT required)
+
+- `GET /api/v1/vehicleLiveTracking?clientId=&transporterId=` — current position snapshot with `gpsStatus`
+  (`running | idle | stop | inactive | no-gps`).
+- `GET /api/v1/vehicleHistoryTracking/vehicles` — vehicles with a GPS device.
+- `GET /api/v1/vehicleHistoryTracking/history?vehicleId=&from=&to=&limit=` — ordered points and stats.
+
+### Socket.IO
+
+Connect with `auth: { token: "<access token>" }`, emit `join-vehicle-live-tracking`, and listen for
+`vehicle.location.updated`. The room is namespaced with `APP_CLIENT_NAMESPACE`.
+
+### Live address (reverse geocoding)
+
+- The gps-worker resolves an address for the live position in the background, using Nominatim (`GEOCODER_URL`). It is saved on `device.address` and returned by the live API and the `vehicle.location.updated` event.
+- A new lookup happens only after the vehicle moves `GEOCODER_MIN_MOVE_METERS` (default 100 m) from where the stored address was resolved.
+- Coordinates are sent exactly as received (no rounding); results are cached in Redis per exact coordinate for 30 days. A Redis lock limits the whole system to 1 request/second (`GEOCODER_MIN_INTERVAL_MS`), as the public Nominatim policy requires. A 429/403 response pauses lookups for 5 minutes.
+- History points do not carry addresses. Use `GET /api/v1/vehicleHistoryTracking/address?lat=&lng=` for one point.
+- For a large fleet, self-host Nominatim and lower `GEOCODER_MIN_INTERVAL_MS`. The public server cannot keep up with hundreds of moving vehicles.
