@@ -7,6 +7,7 @@ import {
   DeviceLiveStatePatch,
   IVehicleGpsDeviceRepository,
   LiveTrackingVehicleFilter,
+  TravelSummaryVehicleFilter,
 } from "../../../../domain/repositories/mysql/IVehicleGpsDeviceRepository";
 
 /** `status` is nullable on add_vehicle; NULL counts as active (SQL `!=` would drop it). */
@@ -66,6 +67,44 @@ export class VehicleGpsDeviceRepository implements IVehicleGpsDeviceRepository {
     return this.em.fork().find(AddVehicle, where, {
       populate: ["device", "client", "transporter"],
       orderBy: { vehicle: "ASC" },
+    });
+  }
+
+  async listVehiclesForTravelSummary(
+    filter: TravelSummaryVehicleFilter = {},
+  ): Promise<AddVehicle[]> {
+    const where: FilterQuery<AddVehicle> = { isDeleted: false };
+    if (filter.clientId) {
+      Object.assign(where, { client: { externalId: filter.clientId, isDeleted: false } });
+    }
+    if (filter.transporterId) {
+      Object.assign(where, {
+        transporter: { externalId: filter.transporterId, isDeleted: false },
+      });
+    }
+    if (filter.vehicleId) {
+      Object.assign(where, { externalId: filter.vehicleId });
+    }
+    const search = filter.search?.trim().replace(/[%_]/g, "");
+    if (search) {
+      Object.assign(where, { vehicle: { $like: `%${search}%` } });
+    }
+
+    return this.em.fork().find(AddVehicle, where, {
+      populate: [
+        "client",
+        "client.owner_name",
+        "client.language",
+        "client.timezone",
+        "device",
+        "device.deviceType",
+        "device.client",
+        "transporter",
+        "transporter.client",
+        "transporter.language",
+        "transporter.timezone",
+      ],
+      orderBy: { vehicle: "ASC", id: "ASC" },
     });
   }
 

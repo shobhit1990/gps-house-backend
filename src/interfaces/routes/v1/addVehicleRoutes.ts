@@ -24,6 +24,8 @@ router.get(
   controller.getStoppageSummaryReport,
 );
 
+router.get("/log", controller.getVehicleLogReport);
+
 router.post("/", controller.createAddVehicle);
 
 router.put("/update/:externalId", controller.updateAddVehicle);

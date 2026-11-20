@@ -7,6 +7,7 @@ import { Device } from "../domain/entities/mysql/Device";
 import { DeviceType } from "../domain/entities/mysql/DeviceType";
 import { Status } from "../domain/enums/status";
 import { IDeviceRepository } from "../domain/repositories/mysql/IDeviceRepository";
+import { FormError } from "../domain/dto/FormError";
 import { AppError } from "../utils/errors";
 import {
   DeviceInventoryResponse,
@@ -58,12 +59,10 @@ export class DeviceService implements IDeviceService {
       payload.client,
       payload.deviceType,
     );
-    if (await this.deviceRepository.getDeviceByImei(payload.imei)) {
-      throw new AppError("IMEI is already registered", 409);
-    }
+    await this.assertImeiUnique(payload.imei);
 
     const device = new Device();
-    device.imei = payload.imei;
+    device.imei = payload.imei.trim();
     device.simNumber = payload.simNumber;
     device.simOperator = payload.simOperator;
     device.secondarySimNumber = payload.secondarySimNumber ?? undefined;
@@ -96,11 +95,8 @@ export class DeviceService implements IDeviceService {
       payload.client ?? device.client.externalId,
       payload.deviceType ?? device.deviceType.externalId,
     );
-    const imei = payload.imei ?? device.imei;
-    const duplicate = await this.deviceRepository.getDeviceByImei(imei);
-    if (duplicate && duplicate.externalId !== device.externalId) {
-      throw new AppError("IMEI is already registered", 409);
-    }
+    const imei = (payload.imei ?? device.imei).trim();
+    await this.assertImeiUnique(imei, device.externalId);
 
     device.imei = imei;
     if (payload.simNumber !== undefined) device.simNumber = payload.simNumber;
@@ -147,6 +143,24 @@ export class DeviceService implements IDeviceService {
   async deleteDevice(externalId: string, actorUserId?: number): Promise<void> {
     const actor = await this.findActor(actorUserId);
     await this.deviceRepository.deleteDevice(externalId, actor);
+  }
+
+  private async assertImeiUnique(
+    imei: string,
+    excludeExternalId?: string,
+  ): Promise<void> {
+    const normalized = imei.trim();
+    if (!normalized) {
+      return;
+    }
+
+    const duplicate = await this.deviceRepository.getDeviceByImei(normalized);
+    if (duplicate && duplicate.externalId !== excludeExternalId) {
+      const fieldError = new FormError();
+      fieldError.field = "imei";
+      fieldError.message = "IMEI already exists";
+      throw new AppError("IMEI already exists", 400, null, [fieldError]);
+    }
   }
 
   private async resolveRelations(

@@ -8,8 +8,11 @@ import {
 } from "@mikro-orm/core";
 import { Exclude, Expose } from "class-transformer";
 import { v4 as uuidv4 } from "uuid";
+import { ExpenseFor } from "../../enums/ExpenseFor";
 import { Status } from "../../enums/status";
+import { AddVehicle } from "./AddVehicle";
 import { Client } from "./Client";
+import { DriverDetail } from "./DriverDetail";
 import { ExpenseType } from "./ExpenseType";
 import { Transporter } from "./Transporter";
 
@@ -29,6 +32,15 @@ export class Expense {
 
   @ManyToOne(() => Transporter, { fieldName: "transporter", nullable: false })
   transporter!: Transporter;
+
+  @Enum(() => ExpenseFor)
+  expenseFor!: ExpenseFor;
+
+  @ManyToOne(() => AddVehicle, { fieldName: "vehicle", nullable: true })
+  vehicle?: AddVehicle | null;
+
+  @ManyToOne(() => DriverDetail, { fieldName: "driver", nullable: true })
+  driver?: DriverDetail | null;
 
   @Property({ nullable: true, length: 255 })
   expenseName?: string;

@@ -196,12 +196,7 @@ export class AddInventoryRepository implements IAddInventoryRepository {
       const fieldError = new FormError();
       fieldError.field = "imei";
       fieldError.message = "IMEI already exists";
-      throw new AppError(
-        "Validation failed. Please check the errors and try again.",
-        400,
-        null,
-        [fieldError],
-      );
+      throw new AppError("IMEI already exists", 400, null, [fieldError]);
     }
 
     throw error;

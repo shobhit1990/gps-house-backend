@@ -1,3 +1,4 @@
+import { raw } from "@mikro-orm/core";
 import { EntityManager } from "@mikro-orm/mysql";
 import { inject, injectable } from "tsyringe";
 import {
@@ -18,7 +19,14 @@ import {
   AddVehicleResponse,
   IAddVehicleService,
   StoppageSummaryReportItem,
+  VehicleLogReportItem,
+  VehicleLogReportQuery,
 } from "./interfaces/IAddVehicleService";
+import {
+  parseModifiedType,
+  parseVehicleLogMonth,
+} from "../utils/vehicleLogReport";
+import { FormError } from "../domain/dto/FormError";
 import { AppError } from "../utils/errors";
 
 @injectable()
@@ -94,6 +102,36 @@ export class AddVehicleService implements IAddVehicleService {
     });
 
     return [];
+  }
+
+  async getVehicleLogReport(
+    query: VehicleLogReportQuery,
+  ): Promise<VehicleLogReportItem[]> {
+    const modifiedType = parseModifiedType(query.modifiedType);
+    const month = parseVehicleLogMonth(query.month, query.year);
+    const vehicles = await this.vehicleRepository.getVehicleLogReport({
+      modifiedType,
+      search: query.search?.trim() || undefined,
+      updatedFrom: month?.from,
+      updatedTo: month?.to,
+    });
+
+    return vehicles.map((vehicle, index) =>
+      this.toVehicleLogItem(vehicle, index + 1, modifiedType ?? null),
+    );
+  }
+
+  private toVehicleLogItem(
+    vehicle: AddVehicle,
+    sn: number,
+    modifiedType: VehicleLogReportItem["modifiedType"],
+  ): VehicleLogReportItem {
+    return {
+      sn,
+      ...this.toResponse(vehicle, true),
+      modifiedType,
+      modifiedDate: vehicle.updatedAt,
+    };
   }
 
   private async validateReportFilter(
@@ -177,6 +215,7 @@ export class AddVehicleService implements IAddVehicleService {
       payload.subscriptionStartDate,
       payload.subscriptionDueDate,
     );
+    await this.assertVehicleNumberUnique(payload.vehicle);
 
     const vehicle = new AddVehicle();
     this.assignFields(vehicle, payload);
@@ -238,6 +277,9 @@ export class AddVehicleService implements IAddVehicleService {
       payload.subscriptionDueDate ??
       existing.subscriptionDueDate.toISOString().slice(0, 10);
     this.validateSubscriptionDates(startDate, dueDate);
+    if (payload.vehicle !== undefined) {
+      await this.assertVehicleNumberUnique(payload.vehicle, externalId);
+    }
 
     this.assignFields(existing, payload);
     existing.client = client;
@@ -250,6 +292,33 @@ export class AddVehicleService implements IAddVehicleService {
 
   async deleteAddVehicle(externalId: string): Promise<void> {
     await this.vehicleRepository.deleteAddVehicle(externalId);
+  }
+
+  private async assertVehicleNumberUnique(
+    vehicleNumber: string,
+    excludeExternalId?: string,
+  ): Promise<void> {
+    const normalized = vehicleNumber.trim().toLowerCase();
+    const existing = await this.em.fork().findOne(AddVehicle, {
+      isDeleted: false,
+      [raw("lower(vehicle)")]: normalized,
+      ...(excludeExternalId
+        ? { externalId: { $ne: excludeExternalId } }
+        : {}),
+    });
+    if (!existing) {
+      return;
+    }
+
+    const error = new FormError();
+    error.field = "vehicle";
+    error.message = "Vehicle number already exists";
+    throw new AppError(
+      "Vehicle number already exists",
+      400,
+      null,
+      [error],
+    );
   }
 
   private validateSubscriptionDates(startDate: string, dueDate: string): void {
@@ -265,7 +334,7 @@ export class AddVehicleService implements IAddVehicleService {
     vehicle: AddVehicle,
     payload: CreateAddVehicleDto | UpdateAddVehicleDto,
   ): void {
-    if (payload.vehicle !== undefined) vehicle.vehicle = payload.vehicle;
+    if (payload.vehicle !== undefined) vehicle.vehicle = payload.vehicle.trim();
     if (payload.mileage !== undefined) vehicle.mileage = payload.mileage;
     if (payload.vehicleType !== undefined)
       vehicle.vehicleType = payload.vehicleType;
@@ -309,6 +378,10 @@ export class AddVehicleService implements IAddVehicleService {
     }
     if (payload.status !== undefined) vehicle.status = payload.status;
     if (payload.reason !== undefined) vehicle.reason = payload.reason;
+  }
+
+  mapVehicleDetail(vehicle: AddVehicle): AddVehicleResponse {
+    return this.toResponse(vehicle, true);
   }
 
   private toResponse(

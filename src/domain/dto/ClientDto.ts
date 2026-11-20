@@ -143,4 +143,8 @@ export class UpdateClientDto {
     @IsOptional()
     @IsString({ message: " must be a string" })
     reason?: string;
+
+    @IsOptional()
+    @IsString()
+    imeiNumber?: string;
 }

@@ -9,6 +9,8 @@ import { IVehicleGpsDeviceService } from "../../../services/interfaces/IVehicleG
 import { VehicleGpsDeviceService } from "../../../services/VehicleGpsDeviceService";
 import { IVehicleLiveTrackingService } from "../../../services/interfaces/IVehicleLiveTrackingService";
 import { VehicleLiveTrackingService } from "../../../services/VehicleLiveTrackingService";
+import { ITravelSummaryService } from "../../../services/interfaces/ITravelSummaryService";
+import { TravelSummaryService } from "../../../services/TravelSummaryService";
 import { IReverseGeocodeService } from "../../../services/interfaces/IReverseGeocodeService";
 import { ReverseGeocodeService } from "../../../services/ReverseGeocodeService";
 
@@ -21,4 +23,5 @@ export function registerVehicleGpsDependencies() {
   container.registerSingleton<IVehicleGpsDeviceResolver>("IVehicleGpsDeviceResolver", VehicleGpsDeviceResolver);
   container.registerSingleton<IVehicleGpsDeviceService>("IVehicleGpsDeviceService", VehicleGpsDeviceService);
   container.register<IVehicleLiveTrackingService>("IVehicleLiveTrackingService", VehicleLiveTrackingService);
+  container.register<ITravelSummaryService>("ITravelSummaryService", TravelSummaryService);
 }

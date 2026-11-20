@@ -3,9 +3,12 @@ import { EntityManager } from "@mikro-orm/mysql";
 import { injectable } from "tsyringe";
 import { AddVehicle } from "../../../../domain/entities/mysql/AddVehicle";
 import { Device } from "../../../../domain/entities/mysql/Device";
+import { ModifiedType } from "../../../../domain/enums/ModifiedType";
+import { Status } from "../../../../domain/enums/status";
 import {
   IAddVehicleRepository,
   SubscriptionReportFilter,
+  VehicleLogReportFilter,
 } from "../../../../domain/repositories/mysql/IAddVehicleRepository";
 import { AppError } from "../../../../utils/errors";
 
@@ -85,6 +88,78 @@ export class AddVehicleRepository implements IAddVehicleRepository {
       if (!due) return true;
       return this.toDateKey(due) !== this.toDateKey(extended);
     });
+  }
+
+  async getVehicleLogReport(
+    filter: VehicleLogReportFilter,
+  ): Promise<AddVehicle[]> {
+    const where: FilterQuery<AddVehicle> = { isDeleted: false };
+    const criteria = where as Record<string, unknown>;
+
+    if (filter.updatedFrom && filter.updatedTo) {
+      criteria.updatedAt = { $gte: filter.updatedFrom, $lt: filter.updatedTo };
+    }
+
+    const search = filter.search?.trim();
+    if (search) {
+      criteria.vehicle = { $like: `%${search.replace(/[%_]/g, "")}%` };
+    }
+
+    this.applyModifiedTypeFilter(criteria, filter.modifiedType, Boolean(search));
+
+    return this.em.fork().find(AddVehicle, where, {
+      populate: [...populate, ...detailsPopulate],
+      orderBy: { updatedAt: "DESC", id: "DESC" },
+    });
+  }
+
+  private applyModifiedTypeFilter(
+    criteria: Record<string, unknown>,
+    modifiedType: ModifiedType | undefined,
+    hasSearch: boolean,
+  ): void {
+    switch (modifiedType) {
+      case ModifiedType.IMEI:
+        criteria.device = { isDeleted: false, imei: { $ne: null } };
+        break;
+      case ModifiedType.SIM_NO:
+        criteria.device = { isDeleted: false, simNumber: { $ne: null } };
+        break;
+      case ModifiedType.SUBSCRIPTION:
+        criteria.subscriptionStartDate = { $ne: null };
+        break;
+      case ModifiedType.INACTIVE:
+        criteria.$or = [
+          { status: Status.INACTIVE },
+          { device: { isDeleted: false, status: Status.INACTIVE } },
+        ];
+        break;
+      case ModifiedType.ACTIVE:
+        criteria.$or = [
+          { status: Status.ACTIVE },
+          {
+            status: null,
+            device: { isDeleted: false, status: Status.ACTIVE },
+          },
+        ];
+        break;
+      case ModifiedType.TIMEZONE:
+        criteria.device = { isDeleted: false, timezoneSetting: true };
+        break;
+      case ModifiedType.IGNITION_WIRE_NOT_CONNECTED_CHANGE:
+        criteria.device = { isDeleted: false, ignitionWireNotConnected: true };
+        break;
+      case ModifiedType.IGNITION_WIRE_POSITIVE_CHANGE:
+        criteria.device = { isDeleted: false, ignitionWireConnected: true };
+        break;
+      case ModifiedType.VEHICLE_NO:
+        if (!hasSearch) {
+          criteria.vehicle = { $ne: "" };
+        }
+        break;
+      default:
+        break;
+    }
   }
 
   private applyClientTransporterFilter(

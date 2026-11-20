@@ -47,6 +47,11 @@ export type LiveTrackingVehicleFilter = {
   transporterId?: string;
 };
 
+export type TravelSummaryVehicleFilter = LiveTrackingVehicleFilter & {
+  vehicleId?: string;
+  search?: string;
+};
+
 /**
  * MySQL access for the GPS pipeline: IMEI → Device → AddVehicle mapping and the
  * device's live position columns (dikshank-backend kept these on GpsDevice).
@@ -66,6 +71,8 @@ export interface IVehicleGpsDeviceRepository {
   listVehiclesWithDevice(): Promise<AddVehicle[]>;
   /** Vehicles for the live map, with device, client and transporter populated. */
   listVehiclesForLiveTracking(filter?: LiveTrackingVehicleFilter): Promise<AddVehicle[]>;
+  /** Vehicles for the travel summary report, with client, transporter, and device details. */
+  listVehiclesForTravelSummary(filter?: TravelSummaryVehicleFilter): Promise<AddVehicle[]>;
   /** Non-deleted vehicle by external id, with device populated. */
   findVehicleByExternalId(externalId: string): Promise<AddVehicle | null>;
 }

@@ -2,6 +2,8 @@ import {
   CreateAddVehicleDto,
   UpdateAddVehicleDto,
 } from "../../domain/dto/AddVehicleDto";
+import { AddVehicle } from "../../domain/entities/mysql/AddVehicle";
+import { ModifiedType } from "../../domain/enums/ModifiedType";
 import {
   StoppageSummaryFilter,
   SubscriptionReportFilter,
@@ -33,6 +35,19 @@ export type StoppageSummaryReportItem = {
   longitude: number | null;
 };
 
+export type VehicleLogReportItem = AddVehicleResponse & {
+  sn: number;
+  modifiedType: ModifiedType | null;
+  modifiedDate: Date;
+};
+
+export type VehicleLogReportQuery = {
+  modifiedType?: string;
+  month?: string;
+  year?: string;
+  search?: string;
+};
+
 export interface IAddVehicleService {
   getAddVehicle(
     filter?: SubscriptionReportFilter,
@@ -51,6 +66,12 @@ export interface IAddVehicleService {
   getStoppageSummaryReport(
     filter: StoppageSummaryFilter,
   ): Promise<StoppageSummaryReportItem[]>;
+
+  getVehicleLogReport(
+    query: VehicleLogReportQuery,
+  ): Promise<VehicleLogReportItem[]>;
+
+  mapVehicleDetail(vehicle: AddVehicle): AddVehicleResponse;
 
   createAddVehicle(payload: CreateAddVehicleDto): Promise<AddVehicleResponse>;
 

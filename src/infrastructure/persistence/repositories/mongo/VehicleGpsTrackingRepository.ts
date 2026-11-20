@@ -1,7 +1,9 @@
 import { injectable } from 'tsyringe';
 import { EntityManager, MongoConnection } from '@mikro-orm/mongodb';
 import { CreateCollectionOptions } from 'mongodb';
+import { AppError } from '../../../../utils/errors';
 import { GpsLocationData, GpsTrackingQuery } from '../../../../domain/models/GpsTrackingData';
+import { TRAVEL_SUMMARY_POINT_CAP, TravelTrackPoint } from '../../../../domain/models/TravelSummary';
 import { GpsTracking } from '../../../../domain/entities/mongo/GpsTracking';
 import { VehicleGpsTrackingLatestDocument } from '../../../../domain/models/VehicleGpsTrackingLatest';
 import { logger } from '../../../../configs/logger';
@@ -623,6 +625,66 @@ export class VehicleGpsTrackingRepository implements IVehicleGpsTrackingReposito
       logger.error('Error finding previous GPS location:', error);
       throw error;
     }
+  }
+
+  async findTravelPoints(query: {
+    vehicleIds: string[];
+    from: Date;
+    to: Date;
+    limit?: number;
+  }): Promise<TravelTrackPoint[]> {
+    const vehicleIds = [...new Set(query.vehicleIds.map((id) => id.trim()).filter(Boolean))];
+    if (vehicleIds.length === 0) {
+      return [];
+    }
+
+    const cap = Math.max(1, query.limit ?? TRAVEL_SUMMARY_POINT_CAP);
+    const collectionNames = await this.resolveCollectionNames(query.from, query.to);
+    const existingCollections = new Set(await this.connection.listCollections());
+    const points: TravelTrackPoint[] = [];
+
+    for (const collectionName of collectionNames) {
+      if (!existingCollections.has(collectionName) || points.length >= cap) {
+        continue;
+      }
+      const collection = this.connection.getCollection<GpsTracking>(collectionName);
+      if (!vehicleHistoryIndexEnsured.has(collectionName)) {
+        await collection.createIndex({ vehicleId: 1, locationTime: -1 });
+        vehicleHistoryIndexEnsured.add(collectionName);
+      }
+      const docs = await collection
+        .find({
+          vehicleId: { $in: vehicleIds },
+          locationTime: { $gte: query.from, $lte: query.to },
+        })
+        .sort({ locationTime: 1 })
+        .limit(cap - points.length)
+        .project(HISTORY_PROJECTION)
+        .toArray();
+
+      for (const doc of docs) {
+        points.push({
+          vehicleId: String(doc.vehicleId),
+          locationTime:
+            doc.locationTime instanceof Date ? doc.locationTime : new Date(doc.locationTime),
+          latitude: Number(doc.latitude),
+          longitude: Number(doc.longitude),
+          speed: Number(doc.speed ?? 0),
+          ignitionStatus: Boolean(doc.ignitionStatus),
+          distance: Number(doc.distance ?? 0),
+          address: doc.address ?? null,
+        });
+      }
+    }
+
+    if (points.length >= cap) {
+      throw new AppError(
+        "Date range has too many GPS points. Narrow the client, transporter, vehicle, or dates.",
+        400,
+      );
+    }
+
+    return points;
   }
 
   async sumDistanceByDeviceImeis(query: {

@@ -20,6 +20,11 @@ export interface IUserRepository {
     excludeExternalId?: string,
   ): Promise<User | null>;
 
+  getUserByImeiNumber(
+    imeiNumber: string,
+    excludeExternalId?: string,
+  ): Promise<User | null>;
+
   getUserForLogin(
     userName?: string,
     email?: string,

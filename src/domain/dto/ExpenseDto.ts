@@ -13,6 +13,7 @@ import {
   MinDate,
   ValidateIf,
 } from "class-validator";
+import { ExpenseFor } from "../enums/ExpenseFor";
 import { Status } from "../enums/status";
 
 const MAX_EXPENSE_AMOUNT = 9999999999.99;
@@ -54,6 +55,19 @@ export class CreateExpenseDto {
   @IsString()
   @IsNotEmpty({ message: "transporter is required" })
   transporter!: string;
+
+  @IsEnum(ExpenseFor, { message: enumMessage("expenseFor", ExpenseFor) })
+  expenseFor!: ExpenseFor;
+
+  @ValidateIf((o: CreateExpenseDto) => o.expenseFor === ExpenseFor.VEHICLE_WISE)
+  @IsString()
+  @IsNotEmpty({ message: "vehicle is required when expenseFor is VehicleWise" })
+  vehicle?: string;
+
+  @ValidateIf((o: CreateExpenseDto) => o.expenseFor === ExpenseFor.DRIVER_WISE)
+  @IsString()
+  @IsNotEmpty({ message: "driver is required when expenseFor is DriverWise" })
+  driver?: string;
 
   @IsOptional()
   @IsString()
@@ -138,6 +152,20 @@ export class UpdateExpenseDto {
   @IsString()
   @IsNotEmpty({ message: "transporter cannot be empty" })
   transporter?: string;
+
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsEnum(ExpenseFor, { message: enumMessage("expenseFor", ExpenseFor) })
+  expenseFor?: ExpenseFor;
+
+  @ValidateIf((_object, value) => value !== undefined && value !== null)
+  @IsString()
+  @IsNotEmpty({ message: "vehicle cannot be empty" })
+  vehicle?: string | null;
+
+  @ValidateIf((_object, value) => value !== undefined && value !== null)
+  @IsString()
+  @IsNotEmpty({ message: "driver cannot be empty" })
+  driver?: string | null;
 
   @IsOptional()
   @IsString()
