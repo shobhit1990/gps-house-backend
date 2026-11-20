@@ -58,6 +58,7 @@ export class VehicleHistoryTrackingController {
         lat: latitude,
         lng: longitude,
         address: result?.address ?? null,
+        houseNumber: result?.houseNumber ?? null,
         components: result?.components ?? null,
       },
     });

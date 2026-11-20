@@ -221,7 +221,8 @@
  *                   properties:
  *                     lat: { type: number }
  *                     lng: { type: number }
- *                     address: { type: string, nullable: true }
+ *                     address: { type: string, nullable: true, description: Starts with the house number when OSM has one }
+ *                     houseNumber: { type: string, nullable: true, description: OSM house number (often missing in India) }
  *                     components:
  *                       type: object
  *                       nullable: true
