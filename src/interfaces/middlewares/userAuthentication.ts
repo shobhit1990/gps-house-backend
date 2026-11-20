@@ -39,17 +39,23 @@ export const authenticateUser = asyncHandler(
     }
 
     const em = container.resolve<EntityManager>(EntityManager).fork();
-    const user = await em.findOne(User, {
-      externalId: claims.sub,
-      isDeleted: false,
-      status: Status.ACTIVE,
-    });
+    const user = await em.findOne(
+      User,
+      {
+        externalId: claims.sub,
+        isDeleted: false,
+        status: Status.ACTIVE,
+      },
+      { populate: ["userType"] },
+    );
     if (!user || claims.sessionVersion !== user.sessionVersion) {
       throw new AppError("Invalid or inactive account", 401);
     }
 
     (req as CustomRequest).userId = user.id;
     (req as CustomRequest).userExternalId = user.externalId;
+    (req as CustomRequest).roleId = user.userType?.id;
+    (req as CustomRequest).roleCode = user.userType?.roleCode;
     next();
   },
 );

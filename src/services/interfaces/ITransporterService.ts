@@ -3,7 +3,7 @@ import { Transporter } from "../../domain/entities/mysql/Transporter";
 
 export interface ITransporterService {
 
-    getTransporter(): Promise<Transporter[]>;
+    getTransporter(clientExternalId?: string): Promise<any[]>;
 
     getTransporterById(externalId: string): Promise<Transporter | null>;
 

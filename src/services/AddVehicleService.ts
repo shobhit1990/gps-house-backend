@@ -8,13 +8,16 @@ import { AddVehicle } from "../domain/entities/mysql/AddVehicle";
 import { Client } from "../domain/entities/mysql/Client";
 import { Device } from "../domain/entities/mysql/Device";
 import { Transporter } from "../domain/entities/mysql/Transporter";
+import { Minutes } from "../domain/enums/Minutes";
 import {
   IAddVehicleRepository,
+  StoppageSummaryFilter,
   SubscriptionReportFilter,
 } from "../domain/repositories/mysql/IAddVehicleRepository";
 import {
   AddVehicleResponse,
   IAddVehicleService,
+  StoppageSummaryReportItem,
 } from "./interfaces/IAddVehicleService";
 import { AppError } from "../utils/errors";
 
@@ -27,8 +30,11 @@ export class AddVehicleService implements IAddVehicleService {
     private readonly em: EntityManager,
   ) {}
 
-  async getAddVehicle(): Promise<AddVehicleResponse[]> {
-    const vehicles = await this.vehicleRepository.getAddVehicle();
+  async getAddVehicle(
+    filter: SubscriptionReportFilter = {},
+  ): Promise<AddVehicleResponse[]> {
+    await this.validateReportFilter(filter);
+    const vehicles = await this.vehicleRepository.getAddVehicle(filter);
     return vehicles.map((vehicle) => this.toResponse(vehicle, true));
   }
 
@@ -58,6 +64,38 @@ export class AddVehicleService implements IAddVehicleService {
     return vehicles.map((vehicle) => this.toResponse(vehicle, true));
   }
 
+  async getStoppageSummaryReport(
+    filter: StoppageSummaryFilter,
+  ): Promise<StoppageSummaryReportItem[]> {
+    if (
+      Number.isNaN(filter.startDate.getTime()) ||
+      Number.isNaN(filter.endDate.getTime())
+    ) {
+      throw new AppError("Invalid startDate or endDate", 400);
+    }
+    if (filter.endDate.getTime() < filter.startDate.getTime()) {
+      throw new AppError("endDate must be greater than or equal to startDate", 400);
+    }
+    if (!Object.values(Minutes).includes(filter.duration)) {
+      throw new AppError(
+        `duration must be one of: ${Object.values(Minutes).join(", ")}`,
+        400,
+      );
+    }
+
+    await this.validateReportFilter(filter);
+
+    // GPS stoppage/track history is not stored in this service yet.
+    // Validate masters + vehicle scope now so the filter contract is ready.
+    await this.vehicleRepository.getAddVehicle({
+      clientExternalId: filter.clientExternalId,
+      transporterExternalId: filter.transporterExternalId,
+      vehicleExternalId: filter.vehicleExternalId,
+    });
+
+    return [];
+  }
+
   private async validateReportFilter(
     filter: SubscriptionReportFilter,
   ): Promise<void> {
@@ -75,9 +113,33 @@ export class AddVehicleService implements IAddVehicleService {
       const transporter = await this.em.fork().findOne(Transporter, {
         externalId: filter.transporterExternalId,
         isDeleted: false,
+        ...(filter.clientExternalId
+          ? { client: { externalId: filter.clientExternalId, isDeleted: false } }
+          : {}),
       });
       if (!transporter) {
         throw new AppError("Transporter not found", 404);
+      }
+    }
+
+    if (filter.vehicleExternalId) {
+      const vehicle = await this.em.fork().findOne(AddVehicle, {
+        externalId: filter.vehicleExternalId,
+        isDeleted: false,
+        ...(filter.clientExternalId
+          ? { client: { externalId: filter.clientExternalId, isDeleted: false } }
+          : {}),
+        ...(filter.transporterExternalId
+          ? {
+              transporter: {
+                externalId: filter.transporterExternalId,
+                isDeleted: false,
+              },
+            }
+          : {}),
+      });
+      if (!vehicle) {
+        throw new AppError("Vehicle not found", 404);
       }
     }
   }

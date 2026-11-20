@@ -13,6 +13,7 @@ import { UserType } from "../domain/enums/UserType";
 import { ITechnicianRepository } from "../domain/repositories/mysql/ITechnicianRepository";
 import { AppError } from "../utils/errors";
 import { hashPassword } from "../utils/passwordHash";
+import { assignUserRole } from "../utils/userRoleAssignment";
 import {
   ITechnicianService,
   TechnicianResponse,
@@ -57,7 +58,7 @@ export class TechnicianService implements ITechnicianService {
     ]);
     const unifiedClient = await this.em.fork().findOne(User, {
       externalId: client.externalId,
-      userType: UserType.CLIENT,
+      userType: { roleCode: UserType.CLIENT },
       isDeleted: false,
     });
     if (!unifiedClient) {
@@ -82,7 +83,6 @@ export class TechnicianService implements ITechnicianService {
     user.externalId = technician.externalId;
     user.userName = technician.userName;
     user.password = technician.password;
-    user.userType = UserType.TECHNICIAN;
     user.companyName = technician.companyName;
     user.name = technician.name;
     user.email = technician.email;
@@ -94,6 +94,7 @@ export class TechnicianService implements ITechnicianService {
     user.timezone = timezone;
     user.status = technician.status;
     user.reason = technician.reason;
+    await assignUserRole(this.em.fork(), user, UserType.TECHNICIAN);
 
     const created = await this.technicianRepository.createTechnician(
       technician,
@@ -181,7 +182,7 @@ export class TechnicianService implements ITechnicianService {
     unifiedUser.updatedAt = new Date();
     const clientUser = await em.findOne(User, {
       externalId: updated.client.externalId,
-      userType: UserType.CLIENT,
+      userType: { roleCode: UserType.CLIENT },
       isDeleted: false,
     });
     if (!clientUser) {

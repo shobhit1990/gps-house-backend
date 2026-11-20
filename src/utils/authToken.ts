@@ -11,7 +11,9 @@ export function createAuthToken(user: User): string {
 
   return jwt.sign(
     {
-      userType: user.userType,
+      userType: user.userType?.roleCode,
+      roleId: user.userType?.id,
+      roleCode: user.userType?.roleCode,
       sessionVersion: user.sessionVersion,
     },
     secret,

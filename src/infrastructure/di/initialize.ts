@@ -12,6 +12,7 @@ import { registerLanguageDependencies } from "./mysql/language-container";
 import { registerTimeZoneDependencies } from "./mysql/timezone-container";
 import { registerClientDependencies } from "./mysql/client-container";
 import { registerMenuItemDependencies } from "./mysql/menuitem-container";
+import { registerPermissionDependencies } from "./mysql/permission-container";
 import { registerTransporterDependencies } from "./mysql/transporter-container";
 import { registerAddVehicleDependencies } from "./mysql/addvehicle-container";
 import { registerPaymentDetailsDependencies } from "./mysql/paymentDetails-container";
@@ -41,7 +42,9 @@ import { registerGeofTypeDependencies } from "./mysql/geofType-container";
 import { registerGeofenceDependencies } from "./mysql/geofence-container";
 import { registerLicenseDependencies } from "./mysql/license-container";
 import { registerDriverDetailDependencies } from "./mysql/driverDetail-container";
+import { registerPolicyDependencies } from "./mysql/policy-container";
 import { DatabaseSeeder } from "../persistence/seeders/DatabaseSeeder";
+import { convertUsersUserTypeToRoleFkFromConnection } from "../persistence/mysql/convertUsersUserTypeToRoleFk";
 
 export async function initializeApp() {
   try {
@@ -50,6 +53,7 @@ export async function initializeApp() {
     registerTimeZoneDependencies();
     registerClientDependencies();
     registerMenuItemDependencies();
+    registerPermissionDependencies();
     registerTransporterDependencies();
     registerAddVehicleDependencies();
     registerPaymentDetailsDependencies();
@@ -79,6 +83,7 @@ export async function initializeApp() {
     registerGeofenceDependencies();
     registerLicenseDependencies();
     registerDriverDetailDependencies();
+    registerPolicyDependencies();
 
     const orm = await initializeORM();
 
@@ -106,20 +111,20 @@ export async function initializeORM(): Promise<{
   try {
     const mySqlOrm = await MikroORM.init<MySqlDriver>(mysqlConfig);
     const schemaGenerator = mySqlOrm.getSchemaGenerator();
-    await mySqlOrm.getMigrator().up();
+    // Convert enum user_type (+ role_id) to Role FK before updateSchema alters the column.
+    await convertUsersUserTypeToRoleFkFromConnection(mySqlOrm.em.getConnection());
+    // Create/sync entity tables first. Incremental migrations assume base tables exist
+    // (fresh empty DBs previously crashed on ALTER TABLE users before schema sync).
     await schemaGenerator.updateSchema();
+    await mySqlOrm.getMigrator().up();
     logger.info("MySQL MikroORM initialized successfully");
 
     const mongoOrm = await MikroORM.init<MongoDriver>(mongoConfig);
     await mongoOrm.getSchemaGenerator().ensureIndexes();
     logger.info("MongoDB MikroORM initialized successfully");
 
-    if (process.env.NODE_ENV === "development") {
-      logger.info("Seeders skipped in development");
-    } else {
-      await runSeeders(mySqlOrm);
-      logger.info("Seeders executed successfully");
-    }
+    await runSeeders(mySqlOrm);
+    logger.info("Seeders executed successfully");
 
     return { mySqlOrm, mongoOrm };
   } catch (error) {

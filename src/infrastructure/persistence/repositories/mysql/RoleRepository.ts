@@ -2,6 +2,8 @@ import { injectable } from "tsyringe";
 import { IRoleRepository } from "../../../../domain/repositories/mysql/IRoleRepository";
 import { EntityManager } from "@mikro-orm/mysql";
 import { Role } from "../../../../domain/entities/mysql/Role";
+import { Roles } from "../../../../domain/enums/Roles";
+import { ensureEmptyRoleMenuPermissions } from "../../../../utils/defaultMenuPermissions";
 import { AppError } from "../../../../utils/errors";
 
 @injectable()
@@ -10,8 +12,14 @@ export class RoleRepository implements IRoleRepository {
 
   async getRole(): Promise<Role[]> {
     const emFork = this.em.fork();
-    const roleData = emFork.find(Role, { isDeleted: false }, {});
-    return roleData;
+    return emFork.find(
+      Role,
+      {
+        isDeleted: false,
+        roleCode: { $ne: Roles.SUPER_ADMIN },
+      },
+      { orderBy: { createdAt: "asc" } },
+    );
   }
 
   async getRoleById(externalId: string): Promise<Role | null> {
@@ -31,6 +39,7 @@ export class RoleRepository implements IRoleRepository {
     const emFork = this.em.fork();
     emFork.persist(role);
     await emFork.flush();
+    await ensureEmptyRoleMenuPermissions(emFork, role);
     return role;
   }
 

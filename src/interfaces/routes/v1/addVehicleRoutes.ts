@@ -19,6 +19,11 @@ router.get(
   controller.getSubscriptionChangedReport,
 );
 
+router.get(
+  "/stoppage-summary",
+  controller.getStoppageSummaryReport,
+);
+
 router.post("/", controller.createAddVehicle);
 
 router.put("/update/:externalId", controller.updateAddVehicle);

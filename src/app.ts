@@ -10,6 +10,7 @@ import { injectHeaders } from "./middleware/injectHeaders";
 import { setupCors } from "./configs/cors";
 import { swaggerDocs } from "./configs/swagger";
 import { authenticateUser } from "./interfaces/middlewares/userAuthentication";
+import { AppError } from "./utils/errors";
 
 dotenv.config();
 
@@ -21,12 +22,16 @@ setupCors(app);
 app.use(
   express.json({
     limit: "10mb",
-    verify: (req: any, res, buf) => {
+    verify: (_req, _res, buf) => {
+      if (!buf.length) return;
       try {
-        JSON.parse(buf.toString());
-      } catch (e) {
+        JSON.parse(buf.toString("utf8"));
+      } catch {
         logger.error("Invalid JSON payload");
-        throw new Error("Invalid JSON payload");
+        throw new AppError(
+          "Invalid JSON payload. Escape quotes/newlines in body or send via JSON.stringify.",
+          400,
+        );
       }
     },
   }),

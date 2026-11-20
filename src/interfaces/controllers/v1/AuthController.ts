@@ -56,7 +56,14 @@ export class AuthController {
             name: user.name ?? user.contactPersonName ?? user.companyName,
             email: user.email ?? null,
             contactNumber: user.phone ?? null,
-            userType: user.userType,
+            userType: user.userType?.roleCode ?? null,
+            role: user.userType
+                ? {
+                    id: user.userType.externalId,
+                    roleCode: user.userType.roleCode,
+                    name: user.userType.name ?? null,
+                }
+                : null,
             imeiNumber: user.imeiNumber ?? null,
             companyName: user.companyName,
             contactPersonName: user.contactPersonName ?? null,

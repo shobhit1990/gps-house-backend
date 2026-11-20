@@ -4,6 +4,7 @@ import {
   IsDateString,
   IsEmail,
   IsEnum,
+  IsIn,
   IsInt,
   IsNotEmpty,
   IsOptional,
@@ -13,7 +14,7 @@ import {
   Min,
 } from "class-validator";
 import { InactiveTime } from "../enums/InactiveTime";
-import { UserType } from "../enums/UserType";
+import { ASSIGNABLE_USER_TYPES, UserType } from "../enums/UserType";
 import { IsMobileNumber, IsPassword } from "../validators/UserValidators";
 
 const trimOptional = ({ value }: { value: unknown }) =>
@@ -48,8 +49,8 @@ export class RegisterUserDto {
   @MaxLength(255)
   contactPersonName?: string;
 
-  @IsEnum(UserType, {
-    message: `userType must be one of: ${Object.values(UserType).join(", ")}`,
+  @IsIn(ASSIGNABLE_USER_TYPES, {
+    message: `userType must be one of: ${ASSIGNABLE_USER_TYPES.join(", ")}`,
   })
   userType!: UserType;
 

@@ -50,6 +50,12 @@ export class AddInventoryController {
     ) => {
       const assignType =
         typeof req.body?.assignType === "string" ? req.body.assignType : "";
+      const client =
+        typeof req.body?.client === "string" ? req.body.client.trim() : "";
+      const technician =
+        typeof req.body?.technician === "string"
+          ? req.body.technician.trim()
+          : "";
       const inventoryType =
         typeof req.body?.inventoryType === "string"
           ? req.body.inventoryType
@@ -78,6 +84,8 @@ export class AddInventoryController {
         req.file.originalname,
         req.file.buffer,
         assignType,
+        client,
+        technician,
         inventoryType,
         req.userId,
       );

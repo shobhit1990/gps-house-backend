@@ -21,6 +21,7 @@ import { IDeviceService } from "../../../services/interfaces/IDeviceService";
 import { IGeofTypeService } from "../../../services/interfaces/IGeofTypeService";
 import { IGeofenceService } from "../../../services/interfaces/IGeofenceService";
 import { ILicenseService } from "../../../services/interfaces/ILicenseService";
+import { Minutes } from "../../../domain/enums/Minutes";
 
 @injectable()
 export class MasterController {
@@ -134,7 +135,16 @@ export class MasterController {
   });
 
   getMasterVehicleList = asyncHandler(async (req: Request, res: Response) => {
-    const vehicleList = await this.vehicleService.getAddVehicle();
+    const vehicleList = await this.vehicleService.getAddVehicle({
+      clientExternalId: this.parseOptionalQueryString(
+        req.query.client,
+        "client",
+      ),
+      transporterExternalId: this.parseOptionalQueryString(
+        req.query.transporter,
+        "transporter",
+      ),
+    });
 
     res.status(200).json({
       data: vehicleList,
@@ -164,7 +174,12 @@ export class MasterController {
 
   getMasterTransporterList = asyncHandler(
     async (req: Request, res: Response) => {
-      const transporterList = await this.transporterService.getTransporter();
+      const clientExternalId = this.parseOptionalQueryString(
+        req.query.client,
+        "client",
+      );
+      const transporterList =
+        await this.transporterService.getTransporter(clientExternalId);
 
       res.status(200).json({
         data: transporterList,
@@ -267,4 +282,30 @@ export class MasterController {
       message: "License list fetched successfully",
     });
   });
+
+  getMasterDurationList = asyncHandler(async (_req: Request, res: Response) => {
+    const durationList = Object.values(Minutes).map((value) => ({
+      id: value,
+      label: `${value} min`,
+      value,
+    }));
+    res.status(200).json({
+      data: durationList,
+      message: "Duration list fetched successfully",
+    });
+  });
+
+  private parseOptionalQueryString(
+    value: unknown,
+    fieldName: string,
+  ): string | undefined {
+    if (value === undefined || value === null || value === "") {
+      return undefined;
+    }
+    const raw = Array.isArray(value) ? value[0] : value;
+    if (typeof raw !== "string" || !raw.trim()) {
+      throw new AppError(`Invalid ${fieldName}`, 400);
+    }
+    return raw.trim();
+  }
 }

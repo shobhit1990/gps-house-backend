@@ -21,14 +21,18 @@ export class TransporterController {
     ) { }
 
     getTransporter = asyncHandler(async (req: CustomRequest, res: Response) => {
-        const transporterList = await this.transporterService.getTransporter();
+        const clientExternalId = this.parseOptionalQueryString(
+            req.query.client,
+            "client",
+        );
+        const transporterList =
+            await this.transporterService.getTransporter(clientExternalId);
 
         res.status(200).json({
             data: transporterList,
-            message: "Transporter list fetch successfully"
-        })
-
-    })
+            message: "Transporter list fetch successfully",
+        });
+    });
 
     getTransporterById = asyncHandler(async (req: Request, res: Response) => {
         const transporterId = Array.isArray(req.params.externalId)
@@ -163,4 +167,18 @@ export class TransporterController {
             });
         }
     );
+
+    private parseOptionalQueryString(
+        value: unknown,
+        fieldName: string,
+    ): string | undefined {
+        if (value === undefined || value === null || value === "") {
+            return undefined;
+        }
+        const raw = Array.isArray(value) ? value[0] : value;
+        if (typeof raw !== "string" || !raw.trim()) {
+            throw new AppError(`Invalid ${fieldName}`, 400);
+        }
+        return raw.trim();
+    }
 }

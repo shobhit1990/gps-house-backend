@@ -2,11 +2,13 @@ import { injectable } from "tsyringe";
 import { IClientRepository } from "../../../../domain/repositories/mysql/IClientRepository";
 import { EntityManager } from "@mikro-orm/mysql";
 import { FormError } from "../../../../domain/dto/FormError";
+import { ensureUserMenuPermissionsFromRole } from "../../../../utils/defaultMenuPermissions";
 import { AppError } from "../../../../utils/errors";
 import { Client } from "../../../../domain/entities/mysql/Client";
 import { User } from "../../../../domain/entities/mysql/User";
 import { Owner } from "../../../../domain/entities/mysql/Owner";
 import { Language } from "../../../../domain/entities/mysql/Language";
+import { Role } from "../../../../domain/entities/mysql/Role";
 import { TimeZone } from "../../../../domain/entities/mysql/TimeZone";
 
 @injectable()
@@ -57,6 +59,12 @@ export class ClientRepository implements IClientRepository {
       unifiedUser.timezone = unifiedUser.timezone
         ? emFork.getReference(TimeZone, unifiedUser.timezone.id)
         : undefined;
+      if (unifiedUser.userType) {
+        unifiedUser.userType = emFork.getReference(
+          Role,
+          unifiedUser.userType.id,
+        );
+      }
       emFork.persist(unifiedUser);
     }
     emFork.persist(client);
@@ -109,6 +117,10 @@ export class ClientRepository implements IClientRepository {
       }
 
       throw err;
+    }
+
+    if (unifiedUser) {
+      await ensureUserMenuPermissionsFromRole(emFork, unifiedUser);
     }
 
     return client;

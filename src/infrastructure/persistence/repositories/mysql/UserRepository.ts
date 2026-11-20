@@ -5,11 +5,13 @@ import { AddGroup } from "../../../../domain/entities/mysql/AddGroup";
 import { Client } from "../../../../domain/entities/mysql/Client";
 import { Language } from "../../../../domain/entities/mysql/Language";
 import { Owner } from "../../../../domain/entities/mysql/Owner";
+import { Role } from "../../../../domain/entities/mysql/Role";
 import { TimeZone } from "../../../../domain/entities/mysql/TimeZone";
 import { User } from "../../../../domain/entities/mysql/User";
 import { Status } from "../../../../domain/enums/status";
 import { UserType } from "../../../../domain/enums/UserType";
 import { IUserRepository } from "../../../../domain/repositories/mysql/IUserRepository";
+import { ensureUserMenuPermissionsFromRole } from "../../../../utils/defaultMenuPermissions";
 import { AppError } from "../../../../utils/errors";
 
 @injectable()
@@ -19,9 +21,16 @@ export class UserRepository implements IUserRepository {
   async getUsers(): Promise<User[]> {
     return this.em.fork().find(
       User,
-      { isDeleted: false, userType: UserType.USER },
+      { isDeleted: false, userType: { roleCode: UserType.USER } },
       {
-        populate: ["group", "timezone", "owner", "language", "client"],
+        populate: [
+          "group",
+          "timezone",
+          "owner",
+          "language",
+          "client",
+          "userType",
+        ],
       },
     );
   }
@@ -31,7 +40,14 @@ export class UserRepository implements IUserRepository {
       User,
       { externalId, isDeleted: false },
       {
-        populate: ["group", "timezone", "owner", "language", "client"],
+        populate: [
+          "group",
+          "timezone",
+          "owner",
+          "language",
+          "client",
+          "userType",
+        ],
       },
     );
   }
@@ -69,7 +85,14 @@ export class UserRepository implements IUserRepository {
         isDeleted: false,
       },
       {
-        populate: ["owner", "language", "timezone", "client", "group"],
+        populate: [
+          "owner",
+          "language",
+          "timezone",
+          "client",
+          "group",
+          "userType",
+        ],
       },
     );
   }
@@ -84,7 +107,14 @@ export class UserRepository implements IUserRepository {
         status: Status.ACTIVE,
       },
       {
-        populate: ["owner", "language", "timezone", "client", "group"],
+        populate: [
+          "owner",
+          "language",
+          "timezone",
+          "client",
+          "group",
+          "userType",
+        ],
       },
     );
   }
@@ -145,6 +175,9 @@ export class UserRepository implements IUserRepository {
     if (user.createdBy) {
       user.createdBy = em.getReference(Client, user.createdBy.id);
     }
+    if (user.userType) {
+      user.userType = em.getReference(Role, user.userType.id);
+    }
     em.persist(user);
 
     try {
@@ -153,12 +186,15 @@ export class UserRepository implements IUserRepository {
       this.throwDuplicateError(error);
     }
 
+    await ensureUserMenuPermissionsFromRole(em, user);
+
     await em.populate(user, [
       "group",
       "timezone",
       "owner",
       "language",
       "client",
+      "userType",
     ]);
     return user;
   }
@@ -168,7 +204,7 @@ export class UserRepository implements IUserRepository {
     const existing = await em.findOne(
       User,
       { externalId: user.externalId, isDeleted: false },
-      { populate: ["group", "timezone"] },
+      { populate: ["group", "timezone", "userType"] },
     );
 
     if (!existing) {
@@ -184,6 +220,9 @@ export class UserRepository implements IUserRepository {
       ...(user.timezone
         ? { timezone: em.getReference(TimeZone, user.timezone.id) }
         : {}),
+      ...(user.userType
+        ? { userType: em.getReference(Role, user.userType.id) }
+        : {}),
       companyName: user.companyName,
       contactPersonName: user.contactPersonName,
       email: user.email,
@@ -191,7 +230,6 @@ export class UserRepository implements IUserRepository {
       companyAddress: user.companyAddress,
       dataRestrictionDays: user.dataRestrictionDays,
       isSchoolUser: user.isSchoolUser,
-      userType: user.userType,
       imeiNumber: user.imeiNumber,
       sessionVersion: user.sessionVersion,
       ...(revokeRefreshToken
@@ -211,7 +249,7 @@ export class UserRepository implements IUserRepository {
       this.throwDuplicateError(error);
     }
 
-    await em.populate(existing, ["group", "timezone"]);
+    await em.populate(existing, ["group", "timezone", "userType"]);
     return existing;
   }
 

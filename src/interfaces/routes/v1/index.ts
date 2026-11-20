@@ -32,6 +32,9 @@ import geofTypeRoutes from "./GeofTypeRoutes";
 import geofenceRoutes from "./GeofenceRoutes";
 import licenseRoutes from "./licenseRoutes";
 import driverDetailRoutes from "./driverDetailRoutes";
+import policyRoutes from "./policyRoutes";
+import permissionRoutes from "./permissionRoutes";
+import rolePermissionRoutes from "./rolePermissionRoutes";
 
 import authRoutes from "./authRoutes";
 import { authenticateUser } from "../../middlewares/userAuthentication";
@@ -71,6 +74,9 @@ router.use("/geofType", geofTypeRoutes);
 router.use("/geofence", authenticateUser, geofenceRoutes);
 router.use("/license", authenticateUser, licenseRoutes);
 router.use("/driverDetail", driverDetailRoutes);
+router.use("/policy", authenticateUser, policyRoutes);
+router.use("/permissions", permissionRoutes);
+router.use("/role-permissions", rolePermissionRoutes);
 
 router.use("/auth", authRoutes);
 

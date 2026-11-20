@@ -30,6 +30,19 @@ export function errorHandler(
     }
 
     res.status(statusCode).json(response);
+  } else if (
+    err instanceof SyntaxError ||
+    (err as { type?: string }).type === "entity.parse.failed"
+  ) {
+    logger.warn({
+      message: "Invalid JSON payload",
+      path: req.path,
+      method: req.method,
+    });
+    res.status(400).json({
+      message:
+        "Invalid JSON payload. Escape quotes/newlines in body or send via JSON.stringify.",
+    });
   } else {
     logger.error({
       message: "Unexpected Error",

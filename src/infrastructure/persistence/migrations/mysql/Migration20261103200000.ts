@@ -66,6 +66,19 @@ function escapeSqlString(value: string): string {
 
 export class Migration20261103200000 extends Migration {
   override async up(): Promise<void> {
+    const tableRows = (await this.execute(
+      `SELECT COUNT(*) AS count
+       FROM information_schema.TABLES
+       WHERE TABLE_SCHEMA = DATABASE()
+         AND TABLE_NAME = 'users'`,
+    )) as Array<{ count: number | string }>;
+    const usersTableExists =
+      !!tableRows[0] && Number(tableRows[0].count) > 0;
+    if (!usersTableExists) {
+      // Fresh DB: schemaGenerator.create/updateSchema owns base table creation.
+      return;
+    }
+
     const columns = (await this.execute(
       `SELECT COLUMN_NAME, DATA_TYPE, COLUMN_TYPE, IS_NULLABLE, COLUMN_DEFAULT
        FROM information_schema.COLUMNS
@@ -78,18 +91,13 @@ export class Migration20261103200000 extends Migration {
       (column) => column.COLUMN_NAME === "user_type",
     );
     if (!userTypeColumn) {
+      // Legacy path: older installs expected an enum. Fresh schemas use a Role FK.
       await this.execute(`
         ALTER TABLE users
         ADD COLUMN user_type ENUM('USER', 'CLIENT', 'TRANSPORTER', 'TECHNICIAN')
           NOT NULL DEFAULT 'USER'
       `);
-    } else {
-      if (userTypeColumn.DATA_TYPE.toLowerCase() !== "enum") {
-        throw new Error(
-          `Cannot safely update users.user_type with data type ${userTypeColumn.DATA_TYPE}`,
-        );
-      }
-
+    } else if (userTypeColumn.DATA_TYPE.toLowerCase() === "enum") {
       const existingValues = parseEnumValues(userTypeColumn.COLUMN_TYPE);
       const missingValues = requiredUserTypes.filter(
         (value) => !existingValues.includes(value),
