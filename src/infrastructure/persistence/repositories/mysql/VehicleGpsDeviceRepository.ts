@@ -22,6 +22,11 @@ export class VehicleGpsDeviceRepository implements IVehicleGpsDeviceRepository {
     return this.em.fork().findOne(Device, { imei, isDeleted: false });
   }
 
+  async findDevicesByImeis(imeis: string[]): Promise<Device[]> {
+    if (imeis.length === 0) return [];
+    return this.em.fork().find(Device, { imei: { $in: imeis }, isDeleted: false });
+  }
+
   async updateDeviceLiveState(deviceId: number, patch: DeviceLiveStatePatch): Promise<void> {
     const data = Object.fromEntries(
       Object.entries(patch).filter(([, value]) => value !== undefined),

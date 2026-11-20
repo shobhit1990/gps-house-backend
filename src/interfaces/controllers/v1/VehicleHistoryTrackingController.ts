@@ -156,6 +156,7 @@ function serializePoint(p: GpsTracking) {
     ignitionStatus: p.ignitionStatus ?? false,
     distance: p.distance ?? 0,
     satellite: p.satellite ?? null,
+    address: p.address ?? null,
   };
 }
 

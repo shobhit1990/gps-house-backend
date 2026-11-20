@@ -74,6 +74,10 @@ export class GpsTracking {
   @Property({ nullable: true, type: "number" })
   batchId?: number;
 
+  /** Reverse-geocoded address near this point (device live address; see VehicleGpsQueue report stage). */
+  @Property({ nullable: true })
+  address?: string;
+
   @Property({ nullable: true, type: "json" })
   metadata?: Record<string, unknown>;
 
@@ -105,6 +109,7 @@ export class GpsTracking {
     latitudeType?: string;
     longitudeType?: string;
     batchId?: number;
+    address?: string;
     metadata?: Record<string, unknown>;
     createdAt?: Date;
     updatedAt?: Date;
@@ -130,6 +135,7 @@ export class GpsTracking {
     this.latitudeType = init.latitudeType;
     this.longitudeType = init.longitudeType;
     this.batchId = init.batchId;
+    this.address = init.address;
     this.metadata = init.metadata;
     this.createdAt = init.createdAt ?? new Date();
     this.updatedAt = init.updatedAt ?? new Date();

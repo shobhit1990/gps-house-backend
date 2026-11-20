@@ -23,6 +23,8 @@ export interface GpsLocationData {
   latitudeType?: string;
   longitudeType?: string;
   batchId?: number;
+  /** Reverse-geocoded address attached by the report stage (not sent by devices). */
+  address?: string;
   metadata?: Record<string, unknown>;
 }
 

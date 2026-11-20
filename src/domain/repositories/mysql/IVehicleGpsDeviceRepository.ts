@@ -54,6 +54,8 @@ export type LiveTrackingVehicleFilter = {
 export interface IVehicleGpsDeviceRepository {
   /** Non-deleted device by exact IMEI (any status). */
   findDeviceByImei(imei: string): Promise<Device | null>;
+  /** Non-deleted devices whose IMEI is any of the given exact values (one query). */
+  findDevicesByImeis(imeis: string[]): Promise<Device[]>;
   /** Writes only the given live columns; never touches admin-managed device fields. */
   updateDeviceLiveState(deviceId: number, patch: DeviceLiveStatePatch): Promise<void>;
   /** Non-deleted, non-inactive vehicle currently assigned to the device. */

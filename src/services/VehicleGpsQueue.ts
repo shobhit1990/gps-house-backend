@@ -8,6 +8,14 @@ import { GpsQueueItem } from "../domain/entities/mongo/VehicleGpsQueueItem";
 import { logger } from "../configs/logger";
 import { getClientNamespace } from "../utils/clientNamespace";
 import { isVehicleGpsRuntimeEnabled } from "../utils/vehicleGpsRuntime";
+import { IVehicleGpsDeviceRepository } from "../domain/repositories/mysql/IVehicleGpsDeviceRepository";
+import { haversineDistanceMeters } from "../utils/gpsDistanceGuard";
+import { gpsImeiLookupVariants } from "../utils/gpsImei";
+
+/** A history point gets the device's address only if it lies within this distance of where it was resolved. */
+const HISTORY_ADDRESS_MAX_METERS = Number(process.env.GPS_HISTORY_ADDRESS_MAX_METERS) || 200;
+
+type DeviceAddress = { address: string; latitude: number | null; longitude: number | null };
 
 const SKIP_LOG_INTERVAL_MS = 30_000;
 
@@ -48,6 +56,8 @@ export class VehicleGpsQueue implements IVehicleGpsQueue {
     private readonly vehicleGpsQueueRepository: IVehicleGpsQueueRepository,
     @inject("IVehicleGpsDeviceService")
     private readonly vehicleGpsDeviceService: IVehicleGpsDeviceService,
+    @inject("IVehicleGpsDeviceRepository")
+    private readonly vehicleGpsDeviceRepository: IVehicleGpsDeviceRepository,
   ) {
     this.realtimeBatchSize = Number(process.env.GPS_REALTIME_BATCH_SIZE) || 20;
     this.reportBatchSize = Number(process.env.GPS_REPORT_BATCH_SIZE) || 20;
@@ -274,6 +284,7 @@ export class VehicleGpsQueue implements IVehicleGpsQueue {
       historyLocations: GpsLocationData[];
     }> = [];
     const completedItemIds: Array<GpsQueueItem["_id"]> = [];
+    const addressByImei = await this.loadDeviceAddresses(queueItems);
 
     for (const item of queueItems) {
       try {
@@ -301,6 +312,9 @@ export class VehicleGpsQueue implements IVehicleGpsQueue {
     }
 
     const allHistoryLocations = locationItems.flatMap(({ historyLocations }) => historyLocations);
+    for (const location of allHistoryLocations) {
+      location.address = location.address ?? this.addressNearPoint(addressByImei.get(location.deviceImei), location);
+    }
     try {
       if (allHistoryLocations.length > 0) {
         await this.vehicleGpsTrackingService.recordLocations(allHistoryLocations);
@@ -326,6 +340,55 @@ export class VehicleGpsQueue implements IVehicleGpsQueue {
       `GPS reporting queue worker ${workerNumber} processed ${completedItemIds.length}/${queueItems.length} item(s)`,
     );
     return true;
+  }
+
+  /**
+   * Device's last reverse-geocoded address per location IMEI (resolved by the realtime stage).
+   * One MySQL query per batch; no geocoder calls here. Lookup failures never fail the batch.
+   */
+  private async loadDeviceAddresses(items: GpsQueueItem[]): Promise<Map<string, DeviceAddress>> {
+    const result = new Map<string, DeviceAddress>();
+    const queueImeis = new Set<string>();
+    for (const item of items) {
+      for (const location of this.getLocationsFromItem(item)) queueImeis.add(location.deviceImei);
+    }
+    if (queueImeis.size === 0) return result;
+
+    // Queue items carry the canonical IMEI; the DB may store a 0-padded variant.
+    const variantToQueueImei = new Map<string, string>();
+    for (const imei of queueImeis) {
+      for (const variant of gpsImeiLookupVariants(imei)) variantToQueueImei.set(variant, imei);
+    }
+
+    try {
+      const devices = await this.vehicleGpsDeviceRepository.findDevicesByImeis([...variantToQueueImei.keys()]);
+      for (const device of devices) {
+        const queueImei = variantToQueueImei.get(device.imei);
+        if (!queueImei || !device.address) continue;
+        result.set(queueImei, {
+          address: device.address,
+          latitude: device.addressLatitude != null ? Number(device.addressLatitude) : null,
+          longitude: device.addressLongitude != null ? Number(device.addressLongitude) : null,
+        });
+      }
+    } catch (error) {
+      logger.warn("Could not load device addresses for GPS report batch; saving without address", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+    return result;
+  }
+
+  /** The device's address applies to a history point only if it was resolved close to that point. */
+  private addressNearPoint(deviceAddress: DeviceAddress | undefined, location: GpsLocationData): string | undefined {
+    if (!deviceAddress || deviceAddress.latitude == null || deviceAddress.longitude == null) return undefined;
+    const distance = haversineDistanceMeters(
+      deviceAddress.latitude,
+      deviceAddress.longitude,
+      location.latitude,
+      location.longitude,
+    );
+    return distance <= HISTORY_ADDRESS_MAX_METERS ? deviceAddress.address : undefined;
   }
 
   private getLatestLocationItemByImei(

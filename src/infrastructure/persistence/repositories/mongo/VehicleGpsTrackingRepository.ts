@@ -44,6 +44,7 @@ const HISTORY_PROJECTION = {
   ignitionStatus: 1,
   distance: 1,
   satellite: 1,
+  address: 1,
 } as const;
 
 const LATEST_LOOKUP_PROJECTION = {
@@ -245,6 +246,7 @@ export class VehicleGpsTrackingRepository implements IVehicleGpsTrackingReposito
         latitudeType: data.latitudeType,
         longitudeType: data.longitudeType,
         batchId: data.batchId,
+        address: data.address,
         metadata: data.metadata,
       });
 
@@ -366,6 +368,7 @@ export class VehicleGpsTrackingRepository implements IVehicleGpsTrackingReposito
             latitudeType: item.latitudeType,
             longitudeType: item.longitudeType,
             batchId: item.batchId,
+            address: item.address,
             metadata: item.metadata,
           });
 

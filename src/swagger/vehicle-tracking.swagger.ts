@@ -82,6 +82,13 @@
  *         ignitionStatus: { type: boolean }
  *         distance: { type: number, description: Meters from previous point }
  *         satellite: { type: number, nullable: true }
+ *         address:
+ *           type: string
+ *           nullable: true
+ *           description: >
+ *             Device's live address at save time, kept only when it was resolved within
+ *             GPS_HISTORY_ADDRESS_MAX_METERS (default 200 m) of this point; otherwise null
+ *             (use /vehicleHistoryTracking/address for that point).
  *
  * /vehicleLiveTracking:
  *   get:
