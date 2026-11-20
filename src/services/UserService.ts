@@ -23,6 +23,7 @@ import {
   isBcryptPasswordHash,
   verifyPassword,
 } from "../utils/passwordHash";
+import { assignUserRole } from "../utils/userRoleAssignment";
 import { IUserService, UserLoginResult } from "./interfaces/IUserService";
 
 @injectable()
@@ -95,21 +96,7 @@ export class UserService implements IUserService {
       throw new AppError("Invalid or inactive TimeZone ID", 400);
     }
 
-    let actor: Client | undefined;
-    if (actorUserId !== undefined) {
-      if (!Number.isSafeInteger(actorUserId) || actorUserId <= 0) {
-        throw new AppError("Invalid user ID", 401);
-      }
-      const foundActor = await em.findOne(Client, {
-        id: actorUserId,
-        isDeleted: false,
-        status: Status.ACTIVE,
-      });
-      if (!foundActor) {
-        throw new AppError("User not found", 401);
-      }
-      actor = foundActor;
-    }
+    const actor = await this.findActor(actorUserId);
 
     const user = new User();
     user.userName = payload.userName;
@@ -124,10 +111,10 @@ export class UserService implements IUserService {
     user.dataRestrictionDays = payload.dataRestrictionDays;
     user.isSchoolUser = payload.isSchoolUser ?? false;
     user.status = payload.status ?? Status.ACTIVE;
-    user.userType = payload.userType ?? UserType.USER;
     user.imeiNumber = payload.imeiNumber;
     user.reason = payload.reason;
     user.createdBy = actor;
+    await assignUserRole(em, user, payload.userType ?? UserType.USER);
 
     return this.userRepository.createUser(user);
   }
@@ -205,13 +192,13 @@ export class UserService implements IUserService {
     user.phone = phone;
     user.address = payload.address;
     user.companyAddress = payload.companyAddress ?? payload.address;
-    user.userType = payload.userType;
     user.imeiNumber = payload.imeiNumber;
     user.status = Status.ACTIVE;
     user.owner = owner;
     user.language = language;
     user.timezone = timezone;
     user.client = client;
+    await assignUserRole(em, user, payload.userType);
     user.domain = payload.domain;
     user.vehicleCount = payload.vehicleCount;
     user.maxVehicleCount = payload.maxVehicleCount;
@@ -312,7 +299,7 @@ export class UserService implements IUserService {
   ): Promise<User> {
     const client = await em.findOne(User, {
       externalId,
-      userType: UserType.CLIENT,
+      userType: { roleCode: UserType.CLIENT },
       isDeleted: false,
       status: Status.ACTIVE,
     });
@@ -510,7 +497,9 @@ export class UserService implements IUserService {
       user.isSchoolUser = payload.isSchoolUser;
     }
     if (payload.status !== undefined) user.status = payload.status;
-    if (payload.userType !== undefined) user.userType = payload.userType;
+    if (payload.userType !== undefined) {
+      await assignUserRole(this.em.fork(), user, payload.userType);
+    }
     if (payload.imeiNumber !== undefined) {
       user.imeiNumber = payload.imeiNumber;
     }
@@ -525,21 +514,33 @@ export class UserService implements IUserService {
     await this.userRepository.deleteUser(externalId, actor?.id);
   }
 
+  /**
+   * Auth gives `users.id`. Audit FKs point at `client`, so resolve via matching
+   * externalId. Platform admins have no client row — createdBy/updatedBy stay unset.
+   */
   private async findActor(userId?: number): Promise<Client | undefined> {
     if (userId === undefined) return undefined;
     if (!Number.isSafeInteger(userId) || userId <= 0) {
       throw new AppError("Invalid user ID", 401);
     }
 
-    const actor = await this.em.fork().findOne(Client, {
+    const em = this.em.fork();
+    const authUser = await em.findOne(User, {
       id: userId,
       isDeleted: false,
       status: Status.ACTIVE,
     });
-    if (!actor) {
+    if (!authUser) {
       throw new AppError("User not found", 401);
     }
-    return actor;
+
+    return (
+      (await em.findOne(Client, {
+        externalId: authUser.externalId,
+        isDeleted: false,
+        status: Status.ACTIVE,
+      })) ?? undefined
+    );
   }
 
   private duplicateFieldError(field: string, message: string): AppError {

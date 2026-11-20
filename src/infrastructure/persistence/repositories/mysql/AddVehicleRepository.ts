@@ -25,14 +25,15 @@ const detailsPopulate = [
 export class AddVehicleRepository implements IAddVehicleRepository {
   constructor(private readonly em: EntityManager) {}
 
-  async getAddVehicle(): Promise<AddVehicle[]> {
-    return this.em.fork().find(
-      AddVehicle,
-      { isDeleted: false },
-      {
-        populate: [...populate, ...detailsPopulate],
-      },
-    );
+  async getAddVehicle(
+    filter: SubscriptionReportFilter = {},
+  ): Promise<AddVehicle[]> {
+    const where: FilterQuery<AddVehicle> = { isDeleted: false };
+    this.applyClientTransporterFilter(where, filter);
+
+    return this.em.fork().find(AddVehicle, where, {
+      populate: [...populate, ...detailsPopulate],
+    });
   }
 
   async getAddVehicleById(externalId: string): Promise<AddVehicle | null> {
@@ -104,6 +105,10 @@ export class AddVehicleRepository implements IAddVehicleRepository {
         externalId: filter.transporterExternalId,
         isDeleted: false,
       };
+    }
+
+    if (filter.vehicleExternalId) {
+      criteria.externalId = filter.vehicleExternalId;
     }
   }
 

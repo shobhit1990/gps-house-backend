@@ -92,8 +92,6 @@ interface ParsedBulkRow {
   secondarySimNumber?: string | null;
   secondarySimOperator?: SimOperator | null;
   deviceTypeKey: string;
-  clientKey?: string;
-  technicianKey?: string;
   ignitionWireConnected: boolean;
   airConditionWireConnected: boolean;
   analogSensor: boolean;
@@ -154,6 +152,8 @@ export class AddInventoryService implements IAddInventoryService {
     fileName: string,
     fileBuffer: Buffer,
     assignTypeRaw: string,
+    clientExternalIdRaw: string,
+    technicianExternalIdRaw: string,
     inventoryTypeRaw: string | undefined,
     actorUserId?: number,
   ): Promise<AddInventoryBulkUploadResult> {
@@ -179,6 +179,51 @@ export class AddInventoryService implements IAddInventoryService {
           message: `assignType must be one of: ${Object.values(AssignType).join(", ")}`,
         },
       ]);
+    }
+
+    const formClientExternalId = String(clientExternalIdRaw ?? "").trim();
+    const formTechnicianExternalId = String(
+      technicianExternalIdRaw ?? "",
+    ).trim();
+
+    if (assignType === AssignType.CLIENT) {
+      if (!formClientExternalId) {
+        return this.bulkUploadFailure(0, [
+          {
+            row: 1,
+            column: "client",
+            message: "client is required when assignType is client",
+          },
+        ]);
+      }
+      if (formTechnicianExternalId) {
+        return this.bulkUploadFailure(0, [
+          {
+            row: 1,
+            column: "technician",
+            message: "technician is not allowed when assignType is client",
+          },
+        ]);
+      }
+    } else {
+      if (!formTechnicianExternalId) {
+        return this.bulkUploadFailure(0, [
+          {
+            row: 1,
+            column: "technician",
+            message: "technician is required when assignType is technician",
+          },
+        ]);
+      }
+      if (formClientExternalId) {
+        return this.bulkUploadFailure(0, [
+          {
+            row: 1,
+            column: "client",
+            message: "client is not allowed when assignType is technician",
+          },
+        ]);
+      }
     }
 
     let formInventoryType: InventoryType | undefined;
@@ -288,7 +333,12 @@ export class AddInventoryService implements IAddInventoryService {
         column,
       ]),
     );
-    const ignoredUploadHeaders = new Set(["assigntype"]);
+    // assignType / client / technician / inventoryType come from the form
+    const ignoredUploadHeaders = new Set([
+      "assigntype",
+      "client",
+      "technician",
+    ]);
     if (formInventoryType) ignoredUploadHeaders.add("inventorytype");
     const errors: AddInventoryBulkUploadError[] = [];
 
@@ -325,10 +375,6 @@ export class AddInventoryService implements IAddInventoryService {
       "deviceType",
     ];
     if (!formInventoryType) requiredHeaders.push("inventoryType");
-    if (assignType === AssignType.CLIENT) requiredHeaders.push("client");
-    if (assignType === AssignType.TECHNICIAN) {
-      requiredHeaders.push("technician");
-    }
     for (const column of requiredHeaders) {
       if (!headerIndexes.has(column)) {
         errors.push({
@@ -371,10 +417,9 @@ export class AddInventoryService implements IAddInventoryService {
       const errorsBeforeRow = errors.length;
       const record: Record<string, unknown> = {};
       let deviceTypeKey = "";
-      let clientKey: string | undefined;
-      let technicianKey: string | undefined;
 
       for (const column of ADD_INVENTORY_EXCEL_COLUMNS) {
+        if (column === "client" || column === "technician") continue;
         const index = headerIndexes.get(column);
         if (index === undefined) continue;
         const value = sourceRow.values[index];
@@ -395,14 +440,6 @@ export class AddInventoryService implements IAddInventoryService {
               message: "deviceType is required",
             });
           }
-          continue;
-        }
-        if (column === "client") {
-          clientKey = this.cellToString(value);
-          continue;
-        }
-        if (column === "technician") {
-          technicianKey = this.cellToString(value);
           continue;
         }
 
@@ -465,38 +502,6 @@ export class AddInventoryService implements IAddInventoryService {
         });
       }
 
-      if (assignType === AssignType.CLIENT) {
-        if (!clientKey) {
-          errors.push({
-            row: sourceRow.row,
-            column: "client",
-            message: "client is required",
-          });
-        }
-        if (technicianKey) {
-          errors.push({
-            row: sourceRow.row,
-            column: "technician",
-            message: "Technician is not allowed for client assignment",
-          });
-        }
-      } else {
-        if (!technicianKey) {
-          errors.push({
-            row: sourceRow.row,
-            column: "technician",
-            message: "technician is required",
-          });
-        }
-        if (clientKey) {
-          errors.push({
-            row: sourceRow.row,
-            column: "client",
-            message: "Client is not allowed for technician assignment",
-          });
-        }
-      }
-
       if (
         errors.length === errorsBeforeRow &&
         inventoryType &&
@@ -521,8 +526,6 @@ export class AddInventoryService implements IAddInventoryService {
             (record.secondarySimOperator as SimOperator | null | undefined) ??
             null,
           deviceTypeKey,
-          clientKey,
-          technicianKey,
           ignitionWireConnected: Boolean(record.ignitionWireConnected),
           airConditionWireConnected: Boolean(record.airConditionWireConnected),
           analogSensor: Boolean(record.analogSensor),
@@ -539,26 +542,36 @@ export class AddInventoryService implements IAddInventoryService {
       return this.bulkUploadFailure(totalRecords, errors, headerRowNumber);
     }
 
+    let formClient: Client | undefined;
+    let formTechnician: Technician | undefined;
+    try {
+      const assignment = await this.resolveAssignment(
+        assignType,
+        formClientExternalId || undefined,
+        formTechnicianExternalId || undefined,
+      );
+      formClient = assignment.client;
+      formTechnician = assignment.technician;
+    } catch (error) {
+      if (error instanceof AppError) {
+        const column =
+          assignType === AssignType.CLIENT ? "client" : "technician";
+        return this.bulkUploadFailure(totalRecords, [
+          {
+            row: 1,
+            column,
+            message: error.message,
+          },
+        ]);
+      }
+      throw error;
+    }
+
     const em = this.em.fork();
     const deviceTypeKeys = [
       ...new Set(parsedRows.map((row) => row.deviceTypeKey)),
     ];
-    const clientKeys = [
-      ...new Set(
-        parsedRows
-          .map((row) => row.clientKey)
-          .filter((value): value is string => Boolean(value)),
-      ),
-    ];
-    const technicianKeys = [
-      ...new Set(
-        parsedRows
-          .map((row) => row.technicianKey)
-          .filter((value): value is string => Boolean(value)),
-      ),
-    ];
-
-    const [deviceTypes, clients, technicians, actor] = await Promise.all([
+    const [deviceTypes, actor] = await Promise.all([
       em.find(DeviceType, {
         isDeleted: false,
         $or: [
@@ -566,45 +579,16 @@ export class AddInventoryService implements IAddInventoryService {
           { deviceName: { $in: deviceTypeKeys } },
         ],
       }),
-      clientKeys.length
-        ? em.find(Client, {
-            isDeleted: false,
-            $or: [
-              { externalId: { $in: clientKeys } },
-              { name: { $in: clientKeys } },
-            ],
-          })
-        : Promise.resolve([] as Client[]),
-      technicianKeys.length
-        ? em.find(Technician, {
-            isDeleted: false,
-            $or: [
-              { externalId: { $in: technicianKeys } },
-              { name: { $in: technicianKeys } },
-            ],
-          })
-        : Promise.resolve([] as Technician[]),
       this.findActor(actorUserId),
     ]);
 
     const deviceTypesByKey = new Map<string, DeviceType>();
     for (const deviceType of deviceTypes) {
       deviceTypesByKey.set(deviceType.externalId.toLowerCase(), deviceType);
-      deviceTypesByKey.set(deviceType.deviceName.trim().toLowerCase(), deviceType);
-    }
-    const clientsByKey = new Map<string, Client>();
-    for (const client of clients) {
-      clientsByKey.set(client.externalId.toLowerCase(), client);
-      if (client.name?.trim()) {
-        clientsByKey.set(client.name.trim().toLowerCase(), client);
-      }
-    }
-    const techniciansByKey = new Map<string, Technician>();
-    for (const technician of technicians) {
-      techniciansByKey.set(technician.externalId.toLowerCase(), technician);
-      if (technician.name?.trim()) {
-        techniciansByKey.set(technician.name.trim().toLowerCase(), technician);
-      }
+      deviceTypesByKey.set(
+        deviceType.deviceName.trim().toLowerCase(),
+        deviceType,
+      );
     }
 
     const details: AddInventory[] = [];
@@ -625,33 +609,6 @@ export class AddInventoryService implements IAddInventoryService {
         continue;
       }
 
-      let client: Client | undefined;
-      let technician: Technician | undefined;
-      if (assignType === AssignType.CLIENT && parsedRow.clientKey) {
-        client = clientsByKey.get(parsedRow.clientKey.toLowerCase());
-        if (!client) {
-          errors.push({
-            row: parsedRow.row,
-            column: "client",
-            message: `Client "${parsedRow.clientKey}" was not found or has been deleted`,
-          });
-          continue;
-        }
-      }
-      if (assignType === AssignType.TECHNICIAN && parsedRow.technicianKey) {
-        technician = techniciansByKey.get(
-          parsedRow.technicianKey.toLowerCase(),
-        );
-        if (!technician) {
-          errors.push({
-            row: parsedRow.row,
-            column: "technician",
-            message: `Technician "${parsedRow.technicianKey}" was not found or has been deleted`,
-          });
-          continue;
-        }
-      }
-
       const imeiKey = parsedRow.imei?.trim().toLowerCase();
       if (imeiKey) {
         if (fileImeiKeys.has(imeiKey)) {
@@ -670,8 +627,8 @@ export class AddInventoryService implements IAddInventoryService {
       inventory.secondarySimOperator = parsedRow.secondarySimOperator ?? null;
       inventory.deviceType = deviceType;
       inventory.assignType = assignType;
-      inventory.client = client;
-      inventory.technician = technician;
+      inventory.client = formClient;
+      inventory.technician = formTechnician;
       inventory.ignitionWireConnected = parsedRow.ignitionWireConnected;
       inventory.airConditionWireConnected =
         parsedRow.airConditionWireConnected;
@@ -1018,6 +975,8 @@ export class AddInventoryService implements IAddInventoryService {
         error.row === headerRow ||
         error.column === "file" ||
         error.column === "assignType" ||
+        error.column === "client" ||
+        error.column === "technician" ||
         error.column === "inventoryType",
     );
     const failedRows = new Set(
@@ -1026,7 +985,9 @@ export class AddInventoryService implements IAddInventoryService {
           (error) =>
             error.row > headerRow &&
             error.column !== "file" &&
-            error.column !== "assignType",
+            error.column !== "assignType" &&
+            error.column !== "client" &&
+            error.column !== "technician",
         )
         .map((error) => error.row),
     );

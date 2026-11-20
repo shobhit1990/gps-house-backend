@@ -13,6 +13,7 @@ import { User } from "../domain/entities/mysql/User";
 import { UserType } from "../domain/enums/UserType";
 import { Status } from "../domain/enums/status";
 import { hashPassword } from "../utils/passwordHash";
+import { assignUserRole } from "../utils/userRoleAssignment";
 
 @injectable()
 export class ClientService implements IClientService {
@@ -178,7 +179,6 @@ export class ClientService implements IClientService {
     user.externalId = client.externalId;
     user.userName = client.userName;
     user.password = hashedPassword;
-    user.userType = UserType.CLIENT;
     user.companyName = client.companyName;
     user.name = client.name;
     user.email = client.email;
@@ -194,6 +194,7 @@ export class ClientService implements IClientService {
     user.imeiNumber = payload.imeiNumber;
     user.status = client.status;
     user.reason = client.reason;
+    await assignUserRole(emFork, user, UserType.CLIENT);
 
     const created = await this.clientRepository.createClient(client, user);
 

@@ -23,11 +23,14 @@ export interface MenuItemUpdateRequest {
   status?: Status;
 }
 
+export interface GetUserMenusOptions {
+  userId: number;
+  allowedMenuTypes?: MenuType[];
+  includeAllMenus?: boolean;
+}
+
 export interface IMenuItemService {
-  getUserMenus(options?: {
-    allowedMenuTypes?: MenuType[];
-    includeAllMenus?: boolean;
-  }): Promise<MenuSidebarResponse>;
+  getUserMenus(options: GetUserMenusOptions): Promise<MenuSidebarResponse>;
   getMenuItems(): Promise<MenuItem[]>;
   getMenuItemById(externalId: string): Promise<MenuItem>;
   getMenuItemsPaginated(options: {

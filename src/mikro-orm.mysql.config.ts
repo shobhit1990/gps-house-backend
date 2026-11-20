@@ -27,7 +27,7 @@ const mysqlConfig: Options<MySqlDriver> = {
         ? "dist/infrastructure/persistence/migrations/mysql"
         : "src/infrastructure/persistence/migrations/mysql",
     ),
-    glob: "!(*.d).{js,ts}",
+    glob: "Migration*.{js,ts}",
   },
   seeder: {
     path: path.join(

@@ -88,4 +88,6 @@ router.get("/geofence", masterController.getMasterGeofenceList);
 
 router.get("/license", masterController.getMasterLicenseList);
 
+router.get("/duration", masterController.getMasterDurationList);
+
 export default router;

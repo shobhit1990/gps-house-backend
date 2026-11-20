@@ -14,7 +14,7 @@ import {
   Min,
 } from "class-validator";
 import { Status } from "../enums/status";
-import { UserType } from "../enums/UserType";
+import { ASSIGNABLE_USER_TYPES, UserType } from "../enums/UserType";
 import { IsMobileNumber, IsPassword } from "../validators/UserValidators";
 
 const enumMessage = (name: string, values: object) =>
@@ -209,7 +209,9 @@ export class UpdateUserDto {
 
   @IsOptional()
   @Transform(({ value }) => (value === "" ? undefined : value))
-  @IsEnum(UserType, { message: enumMessage("userType", UserType) })
+  @IsIn(ASSIGNABLE_USER_TYPES, {
+    message: `userType must be one of: ${ASSIGNABLE_USER_TYPES.join(", ")}`,
+  })
   userType?: UserType;
 
   @IsOptional()

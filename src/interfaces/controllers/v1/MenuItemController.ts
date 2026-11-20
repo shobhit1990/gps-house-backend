@@ -13,6 +13,8 @@ import {
 import { asyncHandler } from "../../../utils/asyncHandler";
 import { AppError } from "../../../utils/errors";
 
+const DEFAULT_SIDEBAR_MENU_TYPES: MenuType[] = [MenuType.Web, MenuType.Both];
+
 @injectable()
 export class MenuItemController {
   constructor(
@@ -20,9 +22,13 @@ export class MenuItemController {
     private readonly menuItemService: IMenuItemService,
   ) {}
 
-  getUserMenus = asyncHandler(async (req: Request, res: Response) => {
+  getUserMenus = asyncHandler(async (req: CustomRequest, res: Response) => {
+    if (!Number.isSafeInteger(req.userId) || req.userId < 1) {
+      throw new AppError("Authentication is required", 401);
+    }
+
     const requestedTypes = req.query.menuType;
-    let allowedMenuTypes: MenuType[] | undefined;
+    let allowedMenuTypes: MenuType[] = DEFAULT_SIDEBAR_MENU_TYPES;
     if (requestedTypes !== undefined) {
       const values = Array.isArray(requestedTypes)
         ? requestedTypes
@@ -52,12 +58,14 @@ export class MenuItemController {
     }
 
     const menuItems = await this.menuItemService.getUserMenus({
+      userId: req.userId,
       allowedMenuTypes,
       includeAllMenus: requestedIncludeAll === "true",
     });
-    res
-      .status(200)
-      .json({ data: menuItems, message: "Menu list fetched successfully" });
+    res.status(200).json({
+      message: "Menu fetched successfully",
+      data: menuItems,
+    });
   });
 
   getMenuItems = asyncHandler(async (_req: Request, res: Response) => {

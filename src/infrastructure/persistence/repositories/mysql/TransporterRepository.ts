@@ -5,21 +5,29 @@ import { Transporter } from "../../../../domain/entities/mysql/Transporter";
 import { User } from "../../../../domain/entities/mysql/User";
 import { Client } from "../../../../domain/entities/mysql/Client";
 import { Language } from "../../../../domain/entities/mysql/Language";
+import { Role } from "../../../../domain/entities/mysql/Role";
 import { TimeZone } from "../../../../domain/entities/mysql/TimeZone";
+import { ensureUserMenuPermissionsFromRole } from "../../../../utils/defaultMenuPermissions";
 import { AppError } from "../../../../utils/errors";
 
 @injectable()
 export class TransporterRepository implements ITransporterRepository {
   constructor(private readonly em: EntityManager) {}
 
-  async getTransporter(): Promise<Transporter[]> {
+  async getTransporter(clientExternalId?: string): Promise<Transporter[]> {
     const emFork = this.em.fork();
-    const transporterData = await emFork.find(
-      Transporter,
-      { isDeleted: false },
-      { populate: ["createdBy", "client", "language", "timezone"] },
-    );
-    return transporterData;
+    const where: Record<string, unknown> = { isDeleted: false };
+
+    if (clientExternalId) {
+      where.client = {
+        externalId: clientExternalId,
+        isDeleted: false,
+      };
+    }
+
+    return emFork.find(Transporter, where, {
+      populate: ["createdBy", "client", "language", "timezone"],
+    });
   }
 
   async getTransporterById(externalId: string): Promise<Transporter | null> {
@@ -49,10 +57,19 @@ export class TransporterRepository implements ITransporterRepository {
       unifiedUser.timezone = unifiedUser.timezone
         ? emFork.getReference(TimeZone, unifiedUser.timezone.id)
         : undefined;
+      if (unifiedUser.userType) {
+        unifiedUser.userType = emFork.getReference(
+          Role,
+          unifiedUser.userType.id,
+        );
+      }
       emFork.persist(unifiedUser);
     }
     emFork.persist(transporter);
     await emFork.flush();
+    if (unifiedUser) {
+      await ensureUserMenuPermissionsFromRole(emFork, unifiedUser);
+    }
     return transporter;
   }
 

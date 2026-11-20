@@ -2,12 +2,41 @@ import {
   CreateAddVehicleDto,
   UpdateAddVehicleDto,
 } from "../../domain/dto/AddVehicleDto";
-import { SubscriptionReportFilter } from "../../domain/repositories/mysql/IAddVehicleRepository";
+import {
+  StoppageSummaryFilter,
+  SubscriptionReportFilter,
+} from "../../domain/repositories/mysql/IAddVehicleRepository";
 
 export type AddVehicleResponse = Record<string, unknown>;
 
+export type StoppageSummaryReportItem = {
+  vehicle: {
+    id: string;
+    vehicleNo: string;
+    nickname: string | null;
+  };
+  client: {
+    id: string;
+    name: string | null;
+    companyName: string;
+  };
+  transporter: {
+    id: string;
+    name: string | null;
+    companyName: string;
+  };
+  startTime: string | null;
+  endTime: string | null;
+  durationMinutes: number | null;
+  location: string | null;
+  latitude: number | null;
+  longitude: number | null;
+};
+
 export interface IAddVehicleService {
-  getAddVehicle(): Promise<AddVehicleResponse[]>;
+  getAddVehicle(
+    filter?: SubscriptionReportFilter,
+  ): Promise<AddVehicleResponse[]>;
 
   getAddVehicleById(externalId: string): Promise<AddVehicleResponse>;
 
@@ -18,6 +47,10 @@ export interface IAddVehicleService {
   getSubscriptionChangedReport(
     filter: SubscriptionReportFilter,
   ): Promise<AddVehicleResponse[]>;
+
+  getStoppageSummaryReport(
+    filter: StoppageSummaryFilter,
+  ): Promise<StoppageSummaryReportItem[]>;
 
   createAddVehicle(payload: CreateAddVehicleDto): Promise<AddVehicleResponse>;
 

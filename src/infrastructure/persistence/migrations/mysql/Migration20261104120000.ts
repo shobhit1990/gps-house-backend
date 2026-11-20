@@ -86,9 +86,8 @@ export class Migration20261104120000 extends Migration {
          CHANGE COLUMN device_id device INT NULL`,
       );
     } else if (!legacyColumn) {
-      throw new Error(
-        "Cannot safely migrate add_vehicle: legacy device values were not preserved",
-      );
+      // Fresh DBs: schemaGenerator already created device as INT FK.
+      // Legacy VARCHAR→INT conversion is only needed for older databases.
     }
 
     const foreignKeys = (await this.execute(

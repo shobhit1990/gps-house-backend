@@ -2,12 +2,13 @@ import { Seeder } from "@mikro-orm/seeder";
 import { EntityManager } from "@mikro-orm/mysql";
 import { logger } from "../../../configs/logger";
 import { User } from "../../../domain/entities/mysql/User";
+import { Roles } from "../../../domain/enums/Roles";
 import { Status } from "../../../domain/enums/status";
-import { UserType } from "../../../domain/enums/UserType";
 import {
   hashPassword,
   isBcryptPasswordHash,
 } from "../../../utils/passwordHash";
+import { assignUserRole } from "../../../utils/userRoleAssignment";
 
 const DEFAULT_ADMIN_PASSWORD = "Admin@123456";
 
@@ -18,15 +19,31 @@ export class UserSeeder extends Seeder {
     }
 
     try {
-      const existingUser = await em.findOne(User, {
-        userName: "admin",
-      });
+      const existingUser = await em.findOne(
+        User,
+        { userName: "admin" },
+        { populate: ["userType"] },
+      );
 
       if (existingUser) {
+        let changed = false;
+
         if (!isBcryptPasswordHash(existingUser.password)) {
           existingUser.password = await hashPassword(DEFAULT_ADMIN_PASSWORD);
-          await em.flush();
+          changed = true;
           logger.info("Default admin user password hashed.");
+        }
+
+        if (existingUser.userType?.roleCode !== Roles.SUPER_ADMIN) {
+          await assignUserRole(em, existingUser, Roles.SUPER_ADMIN);
+          changed = true;
+          logger.info(
+            "Default admin userType linked to SUPER_ADMIN role.",
+          );
+        }
+
+        if (changed) {
+          await em.flush();
         } else {
           logger.info("Default admin user already exists. Skipping.");
         }
@@ -40,10 +57,11 @@ export class UserSeeder extends Seeder {
       defaultUser.password = await hashPassword(DEFAULT_ADMIN_PASSWORD);
       defaultUser.companyAddress = "Lucknow, Uttar Pradesh, India";
       defaultUser.dataRestriction = "60";
-      defaultUser.userType = UserType.USER;
       defaultUser.status = Status.ACTIVE;
       defaultUser.createdAt = new Date();
       defaultUser.updatedAt = new Date();
+
+      await assignUserRole(em, defaultUser, Roles.SUPER_ADMIN);
 
       em.persist(defaultUser);
       await em.flush();

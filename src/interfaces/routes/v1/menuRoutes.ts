@@ -1,11 +1,12 @@
 import { Router } from "express";
 import { container } from "tsyringe";
 import { MenuItemController } from "../../controllers/v1/MenuItemController";
+import { authenticateUser } from "../../middlewares/userAuthentication";
 
 const router = Router();
 const menuItemController = container.resolve(MenuItemController);
 
-router.get("/sidebar", menuItemController.getUserMenus);
+router.get("/sidebar", authenticateUser, menuItemController.getUserMenus);
 router.get("/get-all/paginated", menuItemController.getMenuItemsPaginated);
 router.get("/get-all", menuItemController.getMenuItems);
 router.get("/get-by-id/:externalId", menuItemController.getMenuItemById);

@@ -12,10 +12,10 @@ import { AddGroup } from "./AddGroup";
 import { Client } from "./Client";
 import { Language } from "./Language";
 import { Owner } from "./Owner";
+import { Role } from "./Role";
 import { Status } from "../../enums/status";
 import { TimeZone } from "./TimeZone";
 import { InactiveTime } from "../../enums/InactiveTime";
-import { UserType } from "../../enums/UserType";
 
 @Entity({ tableName: "users" })
 export class User {
@@ -175,8 +175,12 @@ export class User {
     this.minimumDistanceForAddress = value;
   }
 
-  @Enum({ items: () => UserType, default: UserType.USER })
-  userType: UserType = UserType.USER;
+  /** FK to `role.id` (column `user_type`). */
+  @ManyToOne(() => Role, {
+    fieldName: "user_type",
+    nullable: true,
+  })
+  userType?: Role;
 
   @Property({ nullable: true, length: 255 })
   imeiNumber?: string;

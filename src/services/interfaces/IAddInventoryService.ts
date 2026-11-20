@@ -54,6 +54,8 @@ export interface IAddInventoryService {
     fileName: string,
     fileBuffer: Buffer,
     assignType: string,
+    clientExternalId: string,
+    technicianExternalId: string,
     inventoryType: string | undefined,
     actorUserId?: number,
   ): Promise<AddInventoryBulkUploadResult>;

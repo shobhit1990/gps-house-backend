@@ -2,9 +2,11 @@ import { EntityManager } from "@mikro-orm/mysql";
 import { injectable } from "tsyringe";
 import { Technician } from "../../../../domain/entities/mysql/Technician";
 import { Client } from "../../../../domain/entities/mysql/Client";
+import { Role } from "../../../../domain/entities/mysql/Role";
 import { TimeZone } from "../../../../domain/entities/mysql/TimeZone";
 import { User } from "../../../../domain/entities/mysql/User";
 import { ITechnicianRepository } from "../../../../domain/repositories/mysql/ITechnicianRepository";
+import { ensureUserMenuPermissionsFromRole } from "../../../../utils/defaultMenuPermissions";
 import { AppError } from "../../../../utils/errors";
 
 @injectable()
@@ -45,12 +47,18 @@ export class TechnicianRepository implements ITechnicianRepository {
       unifiedUser.timezone = unifiedUser.timezone
         ? em.getReference(TimeZone, unifiedUser.timezone.id)
         : undefined;
+      if (unifiedUser.userType) {
+        unifiedUser.userType = em.getReference(Role, unifiedUser.userType.id);
+      }
       em.persist(unifiedUser);
     }
     if (technician.createdBy) {
       technician.createdBy = em.getReference(Client, technician.createdBy.id);
     }
     await em.persistAndFlush(technician);
+    if (unifiedUser) {
+      await ensureUserMenuPermissionsFromRole(em, unifiedUser);
+    }
     await em.populate(technician, ["client", "timezone"]);
     return technician;
   }

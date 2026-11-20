@@ -8,7 +8,7 @@ export interface ITransporterRepository {
     unifiedUser?: User,
   ): Promise<Transporter>;
 
-  getTransporter(): Promise<Transporter[]>;
+  getTransporter(clientExternalId?: string): Promise<Transporter[]>;
 
   getTransporterById(externalId: string): Promise<Transporter | null>;
 

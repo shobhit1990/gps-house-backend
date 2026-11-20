@@ -7,39 +7,74 @@ import { MenuType } from "../domain/enums/MenuType";
 import { Status } from "../domain/enums/status";
 import {
   MenuSidebarItem,
+  MenuSidebarPermissions,
   MenuSidebarResponse,
 } from "../domain/models/MenuSidebarResponse";
 import { IMenuItemRepository } from "../domain/repositories/mysql/IMenuItemRepository";
+import { IUserMenuPermissionRepository } from "../domain/repositories/mysql/IUserMenuPermissionRepository";
 import { AppError } from "../utils/errors";
 import {
+  GetUserMenusOptions,
   IMenuItemService,
   MenuItemUpdateRequest,
 } from "./interfaces/IMenuItemService";
+
+const EMPTY_PERMISSIONS: MenuSidebarPermissions = {
+  view: false,
+  add: false,
+  edit: false,
+  delete: false,
+  filter: false,
+  print: false,
+  excel: false,
+};
 
 @injectable()
 export class MenuItemService implements IMenuItemService {
   constructor(
     @inject("IMenuItemRepository")
     private readonly menuItemRepository: IMenuItemRepository,
+    @inject("IUserMenuPermissionRepository")
+    private readonly userMenuPermissionRepository: IUserMenuPermissionRepository,
     @inject(EntityManager)
     private readonly em: EntityManager,
   ) {}
 
-  async getUserMenus(options?: {
-    allowedMenuTypes?: MenuType[];
-    includeAllMenus?: boolean;
-  }): Promise<MenuSidebarResponse> {
-    const menuItems = await this.menuItemRepository.getMenuByFilter(
-      ["parent"],
-      {},
-      [],
-    );
+  async getUserMenus(
+    options: GetUserMenusOptions,
+  ): Promise<MenuSidebarResponse> {
+    if (!Number.isSafeInteger(options.userId) || options.userId < 1) {
+      throw new AppError("Authenticated user is required", 401);
+    }
+
+    const [menuItems, permissionRecords] = await Promise.all([
+      this.menuItemRepository.getMenuByFilter(["parent"], {}, []),
+      this.userMenuPermissionRepository.getByUserId(options.userId),
+    ]);
+
+    const permissionsByMenuId = new Map<number, MenuSidebarPermissions>();
+    for (const record of permissionRecords) {
+      const menuId = record.menuItem?.id;
+      if (!Number.isSafeInteger(menuId) || menuId < 1) {
+        continue;
+      }
+      permissionsByMenuId.set(menuId, {
+        view: record.view,
+        add: record.add,
+        edit: record.edit,
+        delete: record.delete,
+        filter: record.filter,
+        print: record.print,
+        excel: record.excel,
+      });
+    }
+
     const visibleItems = menuItems.filter((item) => {
-      if (!options?.includeAllMenus && !item.showInMenu) {
+      if (!options.includeAllMenus && !item.showInMenu) {
         return false;
       }
 
-      const allowedTypes = options?.allowedMenuTypes;
+      const allowedTypes = options.allowedMenuTypes;
       return (
         !allowedTypes?.length ||
         allowedTypes.includes(item.menuType) ||
@@ -47,10 +82,18 @@ export class MenuItemService implements IMenuItemService {
       );
     });
 
+    const visibleById = new Map(visibleItems.map((item) => [item.id, item]));
     const sidebarById = new Map<number, MenuSidebarItem>();
     const parentIds = new Map<number, number | undefined>();
 
     for (const item of visibleItems) {
+      // MikroORM may leave parent as null when the FK points at a missing/inactive row.
+      const parentId = item.parent?.id;
+      const parentVisible =
+        parentId !== undefined && visibleById.has(parentId)
+          ? visibleById.get(parentId)
+          : undefined;
+
       sidebarById.set(item.id, {
         id: item.externalId,
         key: item.key,
@@ -60,26 +103,20 @@ export class MenuItemService implements IMenuItemService {
         isTitle: item.isTitle,
         priority: item.priority,
         menuType: item.menuType,
-        parent: item.parent
+        parent: parentVisible
           ? {
-              id: item.parent.externalId,
-              key: item.parent.key,
-              label: item.parent.label,
-              icon: item.parent.icon,
+              id: parentVisible.externalId,
+              key: parentVisible.key,
+              label: parentVisible.label,
+              icon: parentVisible.icon,
             }
           : null,
-        permissions: {
-          view: item.view,
-          add: item.add,
-          edit: item.edit,
-          delete: item.delete,
-          filter: item.filter,
-          print: item.print,
-          excel: item.excel,
+        permissions: permissionsByMenuId.get(item.id) ?? {
+          ...EMPTY_PERMISSIONS,
         },
         children: [],
       });
-      parentIds.set(item.id, item.parent?.id);
+      parentIds.set(item.id, parentVisible?.id);
     }
 
     const roots: MenuSidebarResponse = [];
@@ -97,7 +134,7 @@ export class MenuItemService implements IMenuItemService {
 
     const sortByPriority = (items: MenuSidebarItem[]) => {
       items.sort((left, right) => left.priority - right.priority);
-      items.forEach((item) => sortByPriority(item.children));
+      items.forEach((child) => sortByPriority(child.children));
     };
     sortByPriority(roots);
     return roots;

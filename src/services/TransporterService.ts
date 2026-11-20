@@ -16,6 +16,7 @@ import { InactiveTime } from "../domain/enums/InactiveTime";
 import { AppError } from "../utils/errors";
 import { hashPassword } from "../utils/passwordHash";
 import { UserType } from "../domain/enums/UserType";
+import { assignUserRole } from "../utils/userRoleAssignment";
 
 @injectable()
 export class TransporterService implements ITransporterService {
@@ -27,8 +28,19 @@ export class TransporterService implements ITransporterService {
     private readonly em: EntityManager,
   ) {}
 
-  async getTransporter(): Promise<any[]> {
-    const transporter = await this.transporterRepository.getTransporter();
+  async getTransporter(clientExternalId?: string): Promise<any[]> {
+    if (clientExternalId) {
+      const client = await this.em.fork().findOne(Client, {
+        externalId: clientExternalId,
+        isDeleted: false,
+      });
+      if (!client) {
+        throw new AppError("Client not found", 404);
+      }
+    }
+
+    const transporter =
+      await this.transporterRepository.getTransporter(clientExternalId);
 
     return transporter.map((transporter) => ({
       id: transporter.externalId,
@@ -126,7 +138,7 @@ export class TransporterService implements ITransporterService {
 
     const commonClient = await em.findOne(User, {
       externalId: client.externalId,
-      userType: UserType.CLIENT,
+      userType: { roleCode: UserType.CLIENT },
       isDeleted: false,
     });
     if (!commonClient) {
@@ -200,7 +212,6 @@ export class TransporterService implements ITransporterService {
     user.externalId = transporter.externalId;
     user.userName = transporter.userName;
     user.password = hashedPassword;
-    user.userType = UserType.TRANSPORTER;
     user.companyName = transporter.companyName;
     user.name = transporter.name;
     user.email = transporter.email;
@@ -216,6 +227,7 @@ export class TransporterService implements ITransporterService {
     user.subscriptionDueDate = transporter.subscriptionDueDate;
     user.subscriptionExtendDate = transporter.subscriptionExtendDate;
     user.subscriptionExpiryCount = transporter.subscriptionExpiryCount;
+    await assignUserRole(em, user, UserType.TRANSPORTER);
     user.maximumRadiusForNearestPOI = transporter.maximumRadiusForNearestPOI;
     user.minimumDistanceForAddress = transporter.minimumDistanceForAddress;
     user.dataRestriction = transporter.dataRestriction;
@@ -404,7 +416,7 @@ export class TransporterService implements ITransporterService {
     if (existing.client) {
       const clientUser = await em.findOne(User, {
         externalId: existing.client.externalId,
-        userType: UserType.CLIENT,
+        userType: { roleCode: UserType.CLIENT },
         isDeleted: false,
       });
       if (!clientUser) {
