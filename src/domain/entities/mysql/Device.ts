@@ -70,6 +70,135 @@ export class Device {
   @Property({ default: false })
   timezoneSetting: boolean = false;
 
+  /* ── Live GPS state (written by the GPS realtime queue stage; mirrors dikshank GpsDevice) ── */
+
+  /** Last time shown on the map; also refreshed by heartbeats while ignition is off. */
+  @Exclude()
+  @Property({ nullable: true })
+  locationTime?: Date;
+
+  /**
+   * Device time of the last real GPS fix applied to latitude/longitude. Unlike locationTime it is
+   * never refreshed by heartbeats, so blind-area re-uploads can be ordered against it.
+   */
+  @Exclude()
+  @Property({ nullable: true })
+  lastFixTime?: Date;
+
+  @Exclude()
+  @Property({ nullable: true, type: "decimal", precision: 15, scale: 8 })
+  latitude?: number;
+
+  @Exclude()
+  @Property({ nullable: true, type: "decimal", precision: 15, scale: 8 })
+  longitude?: number;
+
+  @Exclude()
+  @Property({ nullable: true, type: "decimal", precision: 5, scale: 2 })
+  speed?: number;
+
+  @Exclude()
+  @Property({ nullable: true, type: "decimal", precision: 5, scale: 2 })
+  direction?: number;
+
+  @Exclude()
+  @Property({ nullable: true, length: 50 })
+  gpsRealTime?: string;
+
+  @Exclude()
+  @Property({ nullable: true, length: 50 })
+  gpsPositioning?: string;
+
+  @Exclude()
+  @Property({ nullable: true, length: 20 })
+  mcc?: string;
+
+  @Exclude()
+  @Property({ nullable: true, length: 20 })
+  mnc?: string;
+
+  @Exclude()
+  @Property({ nullable: true, length: 20 })
+  lac?: string;
+
+  @Exclude()
+  @Property({ nullable: true, length: 30 })
+  cellId?: string;
+
+  /** true = ignition on, false = ignition off */
+  @Exclude()
+  @Property({ nullable: true, default: false })
+  ignitionStatus?: boolean;
+
+  @Exclude()
+  @Property({ nullable: true, type: "decimal", precision: 12, scale: 2 })
+  distance?: number;
+
+  @Exclude()
+  @Property({ nullable: true, type: "decimal", precision: 12, scale: 2 })
+  distance1?: number;
+
+  /** Cumulative odometer reading in km; advanced only by the realtime GPS stage. */
+  @Exclude()
+  @Property({ nullable: true, type: "decimal", precision: 12, scale: 2 })
+  odometer?: number;
+
+  @Exclude()
+  @Property({ nullable: true, type: "number" })
+  satellite?: number;
+
+  @Exclude()
+  @Property({ nullable: true, length: 10 })
+  latitudeType?: string;
+
+  @Exclude()
+  @Property({ nullable: true, length: 10 })
+  longitudeType?: string;
+
+  @Exclude()
+  @Property({ nullable: true, type: "number" })
+  batchId?: number;
+
+  @Exclude()
+  @Property({ nullable: true, length: 20 })
+  terminalInfo?: string;
+
+  @Exclude()
+  @Property({ nullable: true })
+  oilElectricity?: boolean;
+
+  @Exclude()
+  @Property({ nullable: true, length: 10 })
+  gpsTracking?: string;
+
+  @Exclude()
+  @Property({ nullable: true })
+  charging?: boolean;
+
+  @Exclude()
+  @Property({ nullable: true, length: 5 })
+  ignition?: string;
+
+  @Exclude()
+  @Property({ nullable: true, length: 20 })
+  defence?: string;
+
+  @Exclude()
+  @Property({ nullable: true, length: 20 })
+  voltage?: string;
+
+  @Exclude()
+  @Property({ nullable: true, length: 20 })
+  gsmSignal?: string;
+
+  @Exclude()
+  @Property({ nullable: true, length: 20 })
+  alarm?: string;
+
+  @Exclude()
+  @Property({ nullable: true, length: 20 })
+  alarmStatus?: string;
+
   @ManyToOne(() => Client, { nullable: true })
   createdBy?: Client;
 

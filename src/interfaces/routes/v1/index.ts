@@ -32,6 +32,8 @@ import geofTypeRoutes from "./GeofTypeRoutes";
 import geofenceRoutes from "./GeofenceRoutes";
 import licenseRoutes from "./licenseRoutes";
 import driverDetailRoutes from "./driverDetailRoutes";
+import vehicleLiveTrackingRoutes from "./vehicleLiveTrackingRoutes";
+import vehicleHistoryTrackingRoutes from "./vehicleHistoryTrackingRoutes";
 
 import authRoutes from "./authRoutes";
 import { authenticateUser } from "../../middlewares/userAuthentication";
@@ -70,6 +72,8 @@ router.use("/master", masterRoutes);
 router.use("/geofType", geofTypeRoutes);
 router.use("/geofence", authenticateUser, geofenceRoutes);
 router.use("/license", authenticateUser, licenseRoutes);
+router.use("/vehicleLiveTracking", authenticateUser, vehicleLiveTrackingRoutes);
+router.use("/vehicleHistoryTracking", authenticateUser, vehicleHistoryTrackingRoutes);
 router.use("/driverDetail", driverDetailRoutes);
 
 router.use("/auth", authRoutes);

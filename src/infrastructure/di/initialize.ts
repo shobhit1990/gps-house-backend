@@ -41,7 +41,15 @@ import { registerGeofTypeDependencies } from "./mysql/geofType-container";
 import { registerGeofenceDependencies } from "./mysql/geofence-container";
 import { registerLicenseDependencies } from "./mysql/license-container";
 import { registerDriverDetailDependencies } from "./mysql/driverDetail-container";
+import { registerVehicleGpsDependencies } from "./mysql/vehicleGps-container";
 import { DatabaseSeeder } from "../persistence/seeders/DatabaseSeeder";
+import { container } from "tsyringe";
+import { IVehicleGpsDeviceResolver } from "../../services/interfaces/IVehicleGpsDeviceResolver";
+import { IVehicleGpsQueue } from "../../services/interfaces/IVehicleGpsQueue";
+import { IVehicleGpsListenerManager } from "../../services/interfaces/IVehicleGpsListenerManager";
+import { validateClientNamespace } from "../../utils/clientNamespace";
+import { getRuntimeRole, shouldRunSeeders, shouldStartGpsWorker } from "../../utils/runtimeRole";
+import { isVehicleGpsListenerEnabled, isVehicleGpsRuntimeEnabled } from "../../utils/vehicleGpsRuntime";
 
 export async function initializeApp() {
   try {
@@ -79,6 +87,7 @@ export async function initializeApp() {
     registerGeofenceDependencies();
     registerLicenseDependencies();
     registerDriverDetailDependencies();
+    registerVehicleGpsDependencies();
 
     const orm = await initializeORM();
 
@@ -92,10 +101,61 @@ export async function initializeApp() {
 
     registerMySqlDependencies(orm.mySqlOrm);
 
-    logger.info("Application initialized successfully");
+    const runtimeRole = getRuntimeRole();
+    if (orm.mongoOrm && shouldStartGpsWorker()) {
+      await startGpsServices();
+    } else if (!shouldStartGpsWorker()) {
+      logger.info(`GPS services skipped for runtime role: ${runtimeRole}`);
+    }
+
+    logger.info(`Application initialized successfully (runtime role: ${runtimeRole})`);
   } catch (error) {
     logger.error("Failed to initialize application:", error);
     process.exit(1);
+  }
+}
+
+/**
+ * Vehicle GPS pipeline (same boot order as dikshank-backend):
+ * IMEI cache refresh → queue processors → TCP listeners.
+ * Which queue stages run is controlled by GPS_REALTIME_PROCESSOR_ENABLED / GPS_REPORT_PROCESSOR_ENABLED.
+ */
+async function startGpsServices(): Promise<void> {
+  validateClientNamespace();
+
+  if (!isVehicleGpsRuntimeEnabled()) {
+    logger.info("Vehicle GPS runtime is disabled; skipping vehicle GPS resolver cache and queue startup");
+    return;
+  }
+
+  const vehicleGpsDeviceResolver = container.resolve<IVehicleGpsDeviceResolver>("IVehicleGpsDeviceResolver");
+  vehicleGpsDeviceResolver.startCacheRefresh();
+
+  const vehicleGpsQueue = container.resolve<IVehicleGpsQueue>("IVehicleGpsQueue");
+  await vehicleGpsQueue.startProcessing();
+
+  if (!isVehicleGpsListenerEnabled()) {
+    logger.info("Vehicle GPS listener is disabled; queue processor remains active");
+    return;
+  }
+
+  const vehicleGpsListenerManager = container.resolve<IVehicleGpsListenerManager>("IVehicleGpsListenerManager");
+  await vehicleGpsListenerManager.initializeListeners();
+  await vehicleGpsListenerManager.startAllListeners();
+}
+
+/** Stops TCP listeners and queue timers (graceful shutdown). */
+export async function stopGpsServices(): Promise<void> {
+  if (!shouldStartGpsWorker() || !isVehicleGpsRuntimeEnabled()) return;
+  try {
+    if (container.isRegistered("IVehicleGpsListenerManager")) {
+      await container.resolve<IVehicleGpsListenerManager>("IVehicleGpsListenerManager").stopAllListeners();
+    }
+    if (container.isRegistered("IVehicleGpsQueue")) {
+      await container.resolve<IVehicleGpsQueue>("IVehicleGpsQueue").stopProcessing();
+    }
+  } catch (error) {
+    logger.error("Error stopping GPS services:", error);
   }
 }
 
@@ -116,6 +176,8 @@ export async function initializeORM(): Promise<{
 
     if (process.env.NODE_ENV === "development") {
       logger.info("Seeders skipped in development");
+    } else if (!shouldRunSeeders()) {
+      logger.info(`Seeders skipped for runtime role: ${getRuntimeRole()}`);
     } else {
       await runSeeders(mySqlOrm);
       logger.info("Seeders executed successfully");
