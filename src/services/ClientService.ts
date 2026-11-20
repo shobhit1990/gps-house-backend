@@ -125,6 +125,8 @@ export class ClientService implements IClientService {
       throw new AppError("Password and Confirm Password do not match", 400);
     }
 
+    await this.assertImeiNumberUnique(payload.imeiNumber);
+
     const emFork = this.em.fork();
 
     const owner = await emFork.findOne(Owner, {
@@ -174,6 +176,7 @@ export class ClientService implements IClientService {
 
     client.status = payload.status ?? Status.ACTIVE;
     client.reason = payload.reason;
+    client.imeiNumber = payload.imeiNumber?.trim() || null;
 
     const user = new User();
     user.externalId = client.externalId;
@@ -191,7 +194,7 @@ export class ClientService implements IClientService {
     user.domain = client.domain;
     user.vehicleCount = client.vehicle_count;
     user.clientImage = client.clientImage;
-    user.imeiNumber = payload.imeiNumber;
+    user.imeiNumber = client.imeiNumber ?? undefined;
     user.status = client.status;
     user.reason = client.reason;
     await assignUserRole(emFork, user, UserType.CLIENT);
@@ -292,12 +295,59 @@ export class ClientService implements IClientService {
       unifiedUser.clientImage = payload.clientImage;
     }
 
+    if (payload.imeiNumber !== undefined) {
+      const nextImei = payload.imeiNumber.trim() || null;
+      await this.assertImeiNumberUnique(nextImei ?? undefined, externalId);
+      client.imeiNumber = nextImei;
+      unifiedUser.imeiNumber = nextImei ?? undefined;
+    }
+
     client.updatedAt = new Date();
     unifiedUser.updatedAt = client.updatedAt;
 
     await emFork.flush();
 
     return client;
+  }
+
+  private async assertImeiNumberUnique(
+    imeiNumber?: string | null,
+    excludeExternalId?: string,
+  ): Promise<void> {
+    const normalized = imeiNumber?.trim();
+    if (!normalized) {
+      return;
+    }
+
+    const em = this.em.fork();
+    const exclude = excludeExternalId
+      ? { externalId: { $ne: excludeExternalId } }
+      : {};
+
+    const existingUser = await em.findOne(User, {
+      imeiNumber: normalized,
+      isDeleted: false,
+      ...exclude,
+    });
+    if (existingUser) {
+      throw this.imeiAlreadyExistsError();
+    }
+
+    const existingClient = await em.findOne(Client, {
+      imeiNumber: normalized,
+      isDeleted: false,
+      ...exclude,
+    });
+    if (existingClient) {
+      throw this.imeiAlreadyExistsError();
+    }
+  }
+
+  private imeiAlreadyExistsError(): AppError {
+    const error = new FormError();
+    error.field = "imeiNumber";
+    error.message = "IMEI already exists";
+    return new AppError("IMEI already exists", 400, null, [error]);
   }
 
   async deleteClient(externalId: string): Promise<void> {

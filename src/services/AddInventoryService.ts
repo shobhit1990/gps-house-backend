@@ -710,9 +710,11 @@ export class AddInventoryService implements IAddInventoryService {
       payload.technician,
     );
 
+    await this.assertImeiUnique(payload.imei);
+
     const inventory = new AddInventory();
     inventory.inventoryType = payload.inventoryType;
-    inventory.imei = payload.imei;
+    inventory.imei = payload.imei?.trim() || null;
     inventory.simNumber = payload.simNumber;
     inventory.simOperator = payload.simOperator;
     inventory.secondarySimNumber = payload.secondarySimNumber;
@@ -783,7 +785,11 @@ export class AddInventoryService implements IAddInventoryService {
     if (payload.inventoryType !== undefined) {
       inventory.inventoryType = payload.inventoryType;
     }
-    if (payload.imei !== undefined) inventory.imei = payload.imei;
+    if (payload.imei !== undefined) {
+      const nextImei = payload.imei?.trim() || null;
+      await this.assertImeiUnique(nextImei, externalId);
+      inventory.imei = nextImei;
+    }
     if (payload.simNumber !== undefined) {
       inventory.simNumber = payload.simNumber;
     }
@@ -843,6 +849,32 @@ export class AddInventoryService implements IAddInventoryService {
       throw new AppError("User not found", 401);
     }
     return actor;
+  }
+
+  private async assertImeiUnique(
+    imei?: string | null,
+    excludeExternalId?: string,
+  ): Promise<void> {
+    const normalized = imei?.trim();
+    if (!normalized) {
+      return;
+    }
+
+    const existing = await this.em.fork().findOne(AddInventory, {
+      imei: normalized,
+      isDeleted: false,
+      ...(excludeExternalId
+        ? { externalId: { $ne: excludeExternalId } }
+        : {}),
+    });
+    if (!existing) {
+      return;
+    }
+
+    const fieldError = new FormError();
+    fieldError.field = "imei";
+    fieldError.message = "IMEI already exists";
+    throw new AppError("IMEI already exists", 400, null, [fieldError]);
   }
 
   private async resolveAssignment(

@@ -73,6 +73,13 @@ export class UserRepository implements IUserRepository {
     return this.findByUniqueField("phone", phone, excludeExternalId);
   }
 
+  async getUserByImeiNumber(
+    imeiNumber: string,
+    excludeExternalId?: string,
+  ): Promise<User | null> {
+    return this.findByUniqueField("imeiNumber", imeiNumber, excludeExternalId);
+  }
+
   async getUserForLogin(
     userName?: string,
     email?: string,
@@ -270,7 +277,7 @@ export class UserRepository implements IUserRepository {
   }
 
   private async findByUniqueField(
-    field: "userName" | "email" | "phone",
+    field: "userName" | "email" | "phone" | "imeiNumber",
     value: string,
     excludeExternalId?: string,
   ): Promise<User | null> {

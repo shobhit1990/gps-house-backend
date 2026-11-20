@@ -1,7 +1,9 @@
 import { EntityManager } from "@mikro-orm/mysql";
 import { injectable } from "tsyringe";
 import { Expense } from "../../../../domain/entities/mysql/Expense";
+import { AddVehicle } from "../../../../domain/entities/mysql/AddVehicle";
 import { Client } from "../../../../domain/entities/mysql/Client";
+import { DriverDetail } from "../../../../domain/entities/mysql/DriverDetail";
 import { ExpenseType } from "../../../../domain/entities/mysql/ExpenseType";
 import { Transporter } from "../../../../domain/entities/mysql/Transporter";
 import { IExpenseRepository } from "../../../../domain/repositories/mysql/IExpenseRepository";
@@ -9,7 +11,20 @@ import { AppError } from "../../../../utils/errors";
 
 const populate = [
   "client",
+  "client.owner_name",
+  "client.language",
+  "client.timezone",
   "transporter",
+  "transporter.client",
+  "transporter.language",
+  "transporter.timezone",
+  "vehicle",
+  "vehicle.device",
+  "driver",
+  "driver.client",
+  "driver.transporter",
+  "driver.licenseToDrive",
+  "driver.geofences",
   "expenseType",
   "createdBy",
   "updatedBy",
@@ -64,6 +79,13 @@ export class ExpenseRepository implements IExpenseRepository {
     em.assign(existing, {
       client: em.getReference(Client, expense.client.id),
       transporter: em.getReference(Transporter, expense.transporter.id),
+      expenseFor: expense.expenseFor,
+      vehicle: expense.vehicle
+        ? em.getReference(AddVehicle, expense.vehicle.id)
+        : null,
+      driver: expense.driver
+        ? em.getReference(DriverDetail, expense.driver.id)
+        : null,
       expenseName: expense.expenseName,
       expenseType: em.getReference(ExpenseType, expense.expenseType.id),
       amount: expense.amount,
@@ -110,6 +132,12 @@ export class ExpenseRepository implements IExpenseRepository {
     expense.client = em.getReference(Client, expense.client.id);
     expense.transporter = em.getReference(Transporter, expense.transporter.id);
     expense.expenseType = em.getReference(ExpenseType, expense.expenseType.id);
+    expense.vehicle = expense.vehicle
+      ? em.getReference(AddVehicle, expense.vehicle.id)
+      : null;
+    expense.driver = expense.driver
+      ? em.getReference(DriverDetail, expense.driver.id)
+      : null;
     if (expense.createdBy) {
       expense.createdBy = em.getReference(Client, expense.createdBy.id);
     }

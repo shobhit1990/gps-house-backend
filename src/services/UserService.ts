@@ -77,6 +77,8 @@ export class UserService implements IUserService {
       }
     }
 
+    await this.assertImeiNumberUnique(payload.imeiNumber);
+
     const em = this.em.fork();
     const group = await em.findOne(AddGroup, {
       externalId: payload.group,
@@ -111,7 +113,7 @@ export class UserService implements IUserService {
     user.dataRestrictionDays = payload.dataRestrictionDays;
     user.isSchoolUser = payload.isSchoolUser ?? false;
     user.status = payload.status ?? Status.ACTIVE;
-    user.imeiNumber = payload.imeiNumber;
+    user.imeiNumber = payload.imeiNumber?.trim() || undefined;
     user.reason = payload.reason;
     user.createdBy = actor;
     await assignUserRole(em, user, payload.userType ?? UserType.USER);
@@ -192,7 +194,8 @@ export class UserService implements IUserService {
     user.phone = phone;
     user.address = payload.address;
     user.companyAddress = payload.companyAddress ?? payload.address;
-    user.imeiNumber = payload.imeiNumber;
+    await this.assertImeiNumberUnique(payload.imeiNumber);
+    user.imeiNumber = payload.imeiNumber?.trim() || undefined;
     user.status = Status.ACTIVE;
     user.owner = owner;
     user.language = language;
@@ -501,11 +504,31 @@ export class UserService implements IUserService {
       await assignUserRole(this.em.fork(), user, payload.userType);
     }
     if (payload.imeiNumber !== undefined) {
-      user.imeiNumber = payload.imeiNumber;
+      const nextImei = payload.imeiNumber.trim() || undefined;
+      await this.assertImeiNumberUnique(nextImei, externalId);
+      user.imeiNumber = nextImei;
     }
     if (payload.reason !== undefined) user.reason = payload.reason;
 
     return this.userRepository.updateUser(user, payload.password !== undefined);
+  }
+
+  private async assertImeiNumberUnique(
+    imeiNumber?: string | null,
+    excludeExternalId?: string,
+  ): Promise<void> {
+    const normalized = imeiNumber?.trim();
+    if (!normalized) {
+      return;
+    }
+
+    const duplicate = await this.userRepository.getUserByImeiNumber(
+      normalized,
+      excludeExternalId,
+    );
+    if (duplicate) {
+      throw this.duplicateFieldError("imeiNumber", "IMEI already exists");
+    }
   }
 
   async deleteUser(externalId: string, actorUserId?: number): Promise<void> {

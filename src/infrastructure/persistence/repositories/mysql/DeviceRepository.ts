@@ -35,7 +35,7 @@ export class DeviceRepository implements IDeviceRepository {
   }
 
   async getDeviceByImei(imei: string): Promise<Device | null> {
-    return this.em.fork().findOne(Device, { imei });
+    return this.em.fork().findOne(Device, { imei, isDeleted: false });
   }
 
   async getAvailableInventories(): Promise<AddInventory[]> {
@@ -170,7 +170,7 @@ export class DeviceRepository implements IDeviceRepository {
       current.errno === 1062 ||
       /duplicate entry/i.test(text);
     if (isDuplicate && /imei/i.test(text)) {
-      throw new AppError("IMEI is already registered", 409);
+      throw new AppError("IMEI already exists", 400);
     }
     throw error;
   }

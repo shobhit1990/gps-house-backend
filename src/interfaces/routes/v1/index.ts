@@ -36,6 +36,8 @@ import policyRoutes from "./policyRoutes";
 import permissionRoutes from "./permissionRoutes";
 import rolePermissionRoutes from "./rolePermissionRoutes";
 import vehicleLiveTrackingRoutes from "./vehicleLiveTrackingRoutes";
+import vehicleLogReportRoutes from "./vehicleLogReportRoutes";
+import travelSummaryRoutes from "./travelSummaryRoutes";
 import vehicleHistoryTrackingRoutes from "./vehicleHistoryTrackingRoutes";
 
 import authRoutes from "./authRoutes";
@@ -76,6 +78,8 @@ router.use("/geofType", geofTypeRoutes);
 router.use("/geofence", authenticateUser, geofenceRoutes);
 router.use("/license", authenticateUser, licenseRoutes);
 router.use("/vehicleLiveTracking", authenticateUser, vehicleLiveTrackingRoutes);
+router.use("/vehicleLogReport", authenticateUser, vehicleLogReportRoutes);
+router.use("/travelSummaryReport", authenticateUser, travelSummaryRoutes);
 router.use("/vehicleHistoryTracking", authenticateUser, vehicleHistoryTrackingRoutes);
 router.use("/driverDetail", driverDetailRoutes);
 router.use("/policy", authenticateUser, policyRoutes);

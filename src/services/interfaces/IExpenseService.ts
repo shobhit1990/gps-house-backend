@@ -2,14 +2,30 @@ import {
   CreateExpenseDto,
   UpdateExpenseDto,
 } from "../../domain/dto/ExpenseDto";
+import { ExpenseFor } from "../../domain/enums/ExpenseFor";
 import { Status } from "../../domain/enums/status";
+
+export interface ExpenseParty {
+  id: string;
+  name: string | null;
+  companyName: string;
+  userName?: string;
+  email?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  status?: Status | string | null;
+  reason?: string | null;
+}
 
 export interface ExpenseResponse {
   id: string;
-  client: { id: string; name: string | null; companyName: string };
-  transporter: { id: string; name: string | null; companyName: string };
+  client: Record<string, unknown>;
+  transporter: Record<string, unknown>;
+  expenseFor: ExpenseFor;
+  vehicle: Record<string, unknown> | null;
+  driver: Record<string, unknown> | null;
   expenseName: string | null;
-  expenseType: { id: string; expenseName: string };
+  expenseType: Record<string, unknown>;
   amount: number;
   expenseDate: Date;
   odometer: number | null;
@@ -18,10 +34,13 @@ export interface ExpenseResponse {
   quantity: number | null;
   supplier: string | null;
   buyer: string | null;
+  createdBy: ExpenseParty | null;
+  updatedBy: ExpenseParty | null;
   status: Status | null;
   reason: string | null;
   createdAt: Date;
   updatedAt: Date;
+  deletedAt: Date | null;
 }
 
 export interface IExpenseService {

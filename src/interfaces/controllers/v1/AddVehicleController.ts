@@ -69,6 +69,22 @@ export class AddVehicleController {
     },
   );
 
+  getVehicleLogReport = asyncHandler(async (req: Request, res: Response) => {
+    const report = await this.vehicleService.getVehicleLogReport({
+      modifiedType: this.parseOptionalQueryString(
+        req.query.modifiedType,
+        "modifiedType",
+      ),
+      month: this.parseOptionalQueryString(req.query.month, "month"),
+      year: this.parseOptionalQueryString(req.query.year, "year"),
+      search: this.parseOptionalQueryString(req.query.search, "search"),
+    });
+    res.status(200).json({
+      message: "Vehicle log report fetched successfully",
+      data: report,
+    });
+  });
+
   getStoppageSummaryReport = asyncHandler(
     async (req: Request, res: Response) => {
       const filter = await this.parseStoppageSummaryFilter(req);
