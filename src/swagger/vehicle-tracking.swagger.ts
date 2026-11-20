@@ -62,6 +62,15 @@
  *             alarmStatus: { type: string, nullable: true }
  *             distance: { type: number, nullable: true, description: Meters since previous fix }
  *             odometer: { type: number, nullable: true, description: Cumulative GPS odometer (km) }
+ *             address:
+ *               type: string
+ *               nullable: true
+ *               example: "Vikrant Khand, Gomti Nagar, Chinhat, Lucknow, Uttar Pradesh, 226010, India"
+ *               description: >
+ *                 Reverse-geocoded (Nominatim) address of the live position. Refreshed in the background after
+ *                 the vehicle moves GEOCODER_MIN_MOVE_METERS (default 100 m); a newer address also arrives via
+ *                 `vehicle.location.updated`.
+ *             addressUpdatedAt: { type: string, format: date-time, nullable: true }
  *     VehicleHistoryPoint:
  *       type: object
  *       properties:
@@ -181,4 +190,45 @@
  *         description: Missing or invalid vehicleId / from / to
  *       404:
  *         description: Vehicle not found
+ *
+ * /vehicleHistoryTracking/address:
+ *   get:
+ *     tags: [Vehicle History Tracking]
+ *     summary: Address for one coordinate (e.g. a clicked history point)
+ *     description: >
+ *       Coordinates are used exactly as given (no rounding); results are cached per exact coordinate. Shares the geocoder rate limit (1 request/second for public Nominatim),
+ *       so `address` is null when no slot frees up within 3 seconds — retry later.
+ *     parameters:
+ *       - in: query
+ *         name: lat
+ *         required: true
+ *         schema: { type: number, example: 26.8703808 }
+ *       - in: query
+ *         name: lng
+ *         required: true
+ *         schema: { type: number, example: 81.0150289 }
+ *     responses:
+ *       200:
+ *         description: Address fetched (address is null when unavailable right now)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message: { type: string }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     lat: { type: number }
+ *                     lng: { type: number }
+ *                     address: { type: string, nullable: true }
+ *                     components:
+ *                       type: object
+ *                       nullable: true
+ *                       additionalProperties: { type: string }
+ *                       example: { residential: "Vikrant Khand", suburb: "Gomti Nagar", county: "Lucknow", state: "Uttar Pradesh", postcode: "226010", country: "India" }
+ *       400:
+ *         description: lat/lng missing or invalid
+ *       503:
+ *         description: Address lookup disabled (GEOCODER_ENABLED=false)
  */

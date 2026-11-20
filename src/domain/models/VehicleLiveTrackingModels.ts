@@ -26,6 +26,9 @@ export type VehicleLiveTrackingGpsDevice = {
   alarmStatus: string | null;
   distance: number | null;
   odometer: number | null;
+  /** Reverse-geocoded address of the live position (may lag up to GEOCODER_MIN_MOVE_METERS). */
+  address: string | null;
+  addressUpdatedAt: Date | null;
 };
 
 export type VehicleLiveTrackingItem = {

@@ -77,3 +77,11 @@ gps_report_queue   ─▶ VehicleGpsTrackingService ─▶ Mongo vehicleGpsTrack
 
 Connect with `auth: { token: "<access token>" }`, emit `join-vehicle-live-tracking`, and listen for
 `vehicle.location.updated`. The room is namespaced with `APP_CLIENT_NAMESPACE`.
+
+### Live address (reverse geocoding)
+
+- The gps-worker resolves an address for the live position in the background, using Nominatim (`GEOCODER_URL`). It is saved on `device.address` and returned by the live API and the `vehicle.location.updated` event.
+- A new lookup happens only after the vehicle moves `GEOCODER_MIN_MOVE_METERS` (default 100 m) from where the stored address was resolved.
+- Coordinates are sent exactly as received (no rounding); results are cached in Redis per exact coordinate for 30 days. A Redis lock limits the whole system to 1 request/second (`GEOCODER_MIN_INTERVAL_MS`), as the public Nominatim policy requires. A 429/403 response pauses lookups for 5 minutes.
+- History points do not carry addresses. Use `GET /api/v1/vehicleHistoryTracking/address?lat=&lng=` for one point.
+- For a large fleet, self-host Nominatim and lower `GEOCODER_MIN_INTERVAL_MS`. The public server cannot keep up with hundreds of moving vehicles.

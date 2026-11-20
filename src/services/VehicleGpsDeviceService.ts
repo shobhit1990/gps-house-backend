@@ -7,14 +7,17 @@ import {
 } from "../domain/repositories/mysql/IVehicleGpsDeviceRepository";
 import { emitVehicleLocationUpdate } from "../infrastructure/socket/socketServer";
 import { logger } from "../configs/logger";
-import { calculateGuardedGpsDistance } from "../utils/gpsDistanceGuard";
+import { calculateGuardedGpsDistance, haversineDistanceMeters } from "../utils/gpsDistanceGuard";
 import { gpsImeiLookupVariants } from "../utils/gpsImei";
 import { advanceGpsDeviceOdometerKm } from "../utils/odometerUtils";
+import { IReverseGeocodeService } from "./interfaces/IReverseGeocodeService";
 import { IVehicleGpsDeviceResolver } from "./interfaces/IVehicleGpsDeviceResolver";
 import { IVehicleGpsDeviceService } from "./interfaces/IVehicleGpsDeviceService";
 
 /** Rows saved before lastFixTime existed: assume the last fix was up to a day before locationTime. */
 const LEGACY_FIX_TIME_MARGIN_MS = 24 * 60 * 60 * 1000;
+/** Re-geocode the live address only after the vehicle moved this far from where it was resolved. */
+const ADDRESS_MIN_MOVE_METERS = Number(process.env.GEOCODER_MIN_MOVE_METERS) || 100;
 
 /**
  * Port of the realtime half of dikshank-backend GpsDeviceService
@@ -24,12 +27,16 @@ const LEGACY_FIX_TIME_MARGIN_MS = 24 * 60 * 60 * 1000;
 export class VehicleGpsDeviceService implements IVehicleGpsDeviceService {
   private readonly lastSocketEmitByVehicle = new Map<string, number>();
   private readonly socketEmitMinIntervalMs = Number(process.env.GPS_SOCKET_EMIT_MIN_INTERVAL_MS) || 0;
+  /** Device ids with an address lookup in flight (one per device at a time). */
+  private readonly addressLookupsInFlight = new Set<number>();
 
   constructor(
     @inject("IVehicleGpsDeviceRepository")
     private readonly vehicleGpsDeviceRepository: IVehicleGpsDeviceRepository,
     @inject("IVehicleGpsDeviceResolver")
     private readonly vehicleGpsDeviceResolver: IVehicleGpsDeviceResolver,
+    @inject("IReverseGeocodeService")
+    private readonly reverseGeocodeService: IReverseGeocodeService,
   ) {}
 
   async processLocationRealtime(deviceImei: string, payload: GpsLocationData): Promise<void> {
@@ -118,6 +125,7 @@ export class VehicleGpsDeviceService implements IVehicleGpsDeviceService {
     Object.assign(row, patch);
 
     this.emitVehicleLiveLocation(row, payload.vehicleId, payload.vehicleNumber);
+    this.scheduleAddressRefresh(row, payload.vehicleId, payload.vehicleNumber);
   }
 
   async updateGpsDeviceStatusByImei(deviceImei: string, payload: GpsStatusData): Promise<void> {
@@ -207,6 +215,7 @@ export class VehicleGpsDeviceService implements IVehicleGpsDeviceService {
         await this.vehicleGpsDeviceRepository.updateDeviceLiveState(row.id, patch);
         Object.assign(row, patch);
         this.emitVehicleLiveLocation(row, vehicleMapping.vehicleId, vehicleMapping.vehicleNumber);
+        this.scheduleAddressRefresh(row, vehicleMapping.vehicleId, vehicleMapping.vehicleNumber);
         return;
       }
     }
@@ -262,16 +271,71 @@ export class VehicleGpsDeviceService implements IVehicleGpsDeviceService {
     return { vehicleId: resolved.vehicleId, vehicleNumber: resolved.vehicleNumber };
   }
 
+  /**
+   * Fire-and-forget: resolve the address for the new live position when the vehicle has moved
+   * ADDRESS_MIN_MOVE_METERS from where the stored address was resolved. Never blocks the queue;
+   * a lookup skipped because of the geocoder rate limit is retried on the device's next point.
+   */
+  private scheduleAddressRefresh(
+    row: Device,
+    vehicleId: string | undefined,
+    vehicleNumber: string | undefined,
+  ): void {
+    if (!this.reverseGeocodeService.isEnabled()) return;
+
+    const latitude = toNumber(row.latitude);
+    const longitude = toNumber(row.longitude);
+    if (latitude == null || longitude == null || (latitude === 0 && longitude === 0)) return;
+    if (this.addressLookupsInFlight.has(row.id)) return;
+
+    const addressLatitude = toNumber(row.addressLatitude);
+    const addressLongitude = toNumber(row.addressLongitude);
+    if (
+      row.address &&
+      addressLatitude != null &&
+      addressLongitude != null &&
+      haversineDistanceMeters(addressLatitude, addressLongitude, latitude, longitude) < ADDRESS_MIN_MOVE_METERS
+    ) {
+      return;
+    }
+
+    this.addressLookupsInFlight.add(row.id);
+    void this.reverseGeocodeService
+      .reverse(latitude, longitude)
+      .then(async (result) => {
+        if (!result) return;
+        const addressPatch: DeviceLiveStatePatch = {
+          address: result.address.slice(0, 500),
+          addressLatitude: latitude,
+          addressLongitude: longitude,
+          addressUpdatedAt: new Date(),
+        };
+        await this.vehicleGpsDeviceRepository.updateDeviceLiveState(row.id, addressPatch);
+        Object.assign(row, addressPatch);
+        // Push the address to the map right away (bypasses the per-vehicle socket throttle).
+        this.emitVehicleLiveLocation(row, vehicleId, vehicleNumber, true);
+      })
+      .catch((error) => {
+        logger.warn(`Failed to update live address for IMEI ${row.imei}`, {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      })
+      .finally(() => {
+        this.addressLookupsInFlight.delete(row.id);
+      });
+  }
+
   private emitVehicleLiveLocation(
     row: Device,
     vehicleId: string | undefined,
     vehicleNumber: string | undefined,
+    force = false,
   ): void {
     if (!vehicleId) {
       return;
     }
 
-    if (this.shouldThrottleSocketEmit(vehicleId)) {
+    if (!force && this.shouldThrottleSocketEmit(vehicleId)) {
       return;
     }
 
@@ -293,6 +357,7 @@ export class VehicleGpsDeviceService implements IVehicleGpsDeviceService {
       satellite: row.satellite ?? null,
       distance: toNumber(row.distance),
       odometer: toNumber(row.odometer),
+      address: row.address ?? null,
     });
   }
 

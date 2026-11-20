@@ -7,5 +7,6 @@ const controller = container.resolve(VehicleHistoryTrackingController);
 
 router.get("/vehicles", controller.getVehicleList);
 router.get("/history", controller.getHistory);
+router.get("/address", controller.getAddress);
 
 export default router;

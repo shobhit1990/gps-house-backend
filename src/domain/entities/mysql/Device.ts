@@ -199,6 +199,24 @@ export class Device {
   @Property({ nullable: true, length: 20 })
   alarmStatus?: string;
 
+  /** Reverse-geocoded address of the live position (Nominatim), refreshed after real movement. */
+  @Exclude()
+  @Property({ nullable: true, length: 500 })
+  address?: string;
+
+  /** Coordinates the stored `address` was resolved for (to decide when it is stale). */
+  @Exclude()
+  @Property({ nullable: true, type: "decimal", precision: 15, scale: 8 })
+  addressLatitude?: number;
+
+  @Exclude()
+  @Property({ nullable: true, type: "decimal", precision: 15, scale: 8 })
+  addressLongitude?: number;
+
+  @Exclude()
+  @Property({ nullable: true })
+  addressUpdatedAt?: Date;
+
   @ManyToOne(() => Client, { nullable: true })
   createdBy?: Client;
 

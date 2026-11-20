@@ -72,6 +72,8 @@ export class VehicleLiveTrackingService implements IVehicleLiveTrackingService {
             alarmStatus: d.alarmStatus ?? null,
             distance: toNumber(d.distance),
             odometer: toNumber(d.odometer),
+            address: d.address ?? null,
+            addressUpdatedAt: d.addressUpdatedAt ?? null,
           }
         : null,
     };

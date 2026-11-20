@@ -4,6 +4,7 @@ import { GpsTracking } from "../../../domain/entities/mongo/GpsTracking";
 import { Status } from "../../../domain/enums/status";
 import { IVehicleGpsDeviceRepository } from "../../../domain/repositories/mysql/IVehicleGpsDeviceRepository";
 import { IVehicleGpsTrackingService } from "../../../services/interfaces/IVehicleGpsTrackingService";
+import { IReverseGeocodeService } from "../../../services/interfaces/IReverseGeocodeService";
 import { asyncHandler } from "../../../utils/asyncHandler";
 import { AppError } from "../../../utils/errors";
 
@@ -21,7 +22,46 @@ export class VehicleHistoryTrackingController {
     private readonly vehicleGpsDeviceRepository: IVehicleGpsDeviceRepository,
     @inject("IVehicleGpsTrackingService")
     private readonly gpsTrackingService: IVehicleGpsTrackingService,
+    @inject("IReverseGeocodeService")
+    private readonly reverseGeocodeService: IReverseGeocodeService,
   ) {}
+
+  /**
+   * GET /vehicleHistoryTracking/address?lat=&lng=
+   * On-demand address for one point (e.g. a clicked history marker). Cached; shares the
+   * geocoder rate limit with the live pipeline and waits up to 3 s for a free slot.
+   */
+  getAddress = asyncHandler(async (req: Request, res: Response) => {
+    const latitude = Number(req.query.lat);
+    const longitude = Number(req.query.lng);
+    if (
+      req.query.lat === undefined ||
+      req.query.lng === undefined ||
+      !Number.isFinite(latitude) ||
+      !Number.isFinite(longitude) ||
+      Math.abs(latitude) > 90 ||
+      Math.abs(longitude) > 180
+    ) {
+      throw new AppError("lat and lng must be valid coordinates", 400);
+    }
+    if (!this.reverseGeocodeService.isEnabled()) {
+      throw new AppError("Address lookup is disabled", 503);
+    }
+
+    const result = await this.reverseGeocodeService.reverse(latitude, longitude, {
+      waitForSlotMs: 3_000,
+    });
+
+    res.status(200).json({
+      message: result ? "Address fetched successfully" : "Address not available right now",
+      data: {
+        lat: latitude,
+        lng: longitude,
+        address: result?.address ?? null,
+        components: result?.components ?? null,
+      },
+    });
+  });
 
   /**
    * GET /vehicleHistoryTracking/history

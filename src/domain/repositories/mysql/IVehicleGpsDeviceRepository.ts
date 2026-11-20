@@ -35,6 +35,10 @@ export type DeviceLiveStatePatch = Partial<
     | "gsmSignal"
     | "alarm"
     | "alarmStatus"
+    | "address"
+    | "addressLatitude"
+    | "addressLongitude"
+    | "addressUpdatedAt"
   >
 >;
 

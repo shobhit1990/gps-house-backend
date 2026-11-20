@@ -35,4 +35,6 @@ export type VehicleLocationUpdatedPayload = {
   satellite: number | null;
   distance: number | null;
   odometer: number | null;
+  /** Last resolved address; may lag the position until the geocoder catches up. */
+  address: string | null;
 };

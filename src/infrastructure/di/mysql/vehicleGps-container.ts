@@ -9,10 +9,13 @@ import { IVehicleGpsDeviceService } from "../../../services/interfaces/IVehicleG
 import { VehicleGpsDeviceService } from "../../../services/VehicleGpsDeviceService";
 import { IVehicleLiveTrackingService } from "../../../services/interfaces/IVehicleLiveTrackingService";
 import { VehicleLiveTrackingService } from "../../../services/VehicleLiveTrackingService";
+import { IReverseGeocodeService } from "../../../services/interfaces/IReverseGeocodeService";
+import { ReverseGeocodeService } from "../../../services/ReverseGeocodeService";
 
 /** MySQL/Redis side of vehicle GPS tracking (Mongo side lives in di/mongo/container.ts). */
 export function registerVehicleGpsDependencies() {
   container.registerSingleton<IRedisService>("IRedisService", RedisService);
+  container.registerSingleton<IReverseGeocodeService>("IReverseGeocodeService", ReverseGeocodeService);
   container.register<IVehicleGpsDeviceRepository>("IVehicleGpsDeviceRepository", VehicleGpsDeviceRepository);
   // Singletons: the resolver owns a refresh timer and the device service a socket-throttle map.
   container.registerSingleton<IVehicleGpsDeviceResolver>("IVehicleGpsDeviceResolver", VehicleGpsDeviceResolver);
