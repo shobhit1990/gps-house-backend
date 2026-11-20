@@ -9,7 +9,6 @@ import { getRuntimeRole, shouldStartHttpServer } from "./utils/runtimeRole";
 
 dotenv.config();
 
-
 async function listenWithPortFallback(
   app: Application,
   preferred: number,
@@ -48,19 +47,6 @@ async function startServer() {
     registerProcessErrorHandlers();
     await initializeApp();
 
-    const preferredPort = Number(process.env.PORT) || 3000;
-    const { default: app } = await import("./app");
-
-    const { server, port } = await listenWithPortFallback(app, preferredPort);
-    logger.info(`Server is running on http://localhost:${port}`);
-
-    server.on("error", (err: NodeJS.ErrnoException) => {
-      logger.error("HTTP server error", err);
-    });
-
-    // Graceful shutdown handling
-    process.on("SIGTERM", shutdown); // For PM2 or other process managers
-    process.on("SIGINT", shutdown); // For Ctrl+C during development
     const runtimeRole = getRuntimeRole();
 
     if (!shouldStartHttpServer()) {
@@ -71,54 +57,44 @@ async function startServer() {
       return;
     }
 
-    const PORT = Number(process.env.PORT) || 3000;
+    const preferredPort = Number(process.env.PORT) || 3000;
     const { default: app } = await import("./app");
 
-    const server = app.listen(PORT, "127.0.0.1", () => {
-      logger.info(`Server is running on http://127.0.0.1:${PORT} (runtime role: ${runtimeRole})`);
+    const { server, port } = await listenWithPortFallback(app, preferredPort);
+    logger.info(`Server is running on http://localhost:${port} (runtime role: ${runtimeRole})`);
+
+    server.on("error", (err: NodeJS.ErrnoException) => {
+      logger.error("HTTP server error", err);
     });
 
     const socketService = new SocketService();
     socketService.start(server);
     logger.info("Socket.IO server initialized");
 
-    process.on("SIGTERM", shutdown);
-    process.on("SIGINT", shutdown);
+    // Graceful shutdown handling
+    process.on("SIGTERM", shutdown); // For PM2 or other process managers
+    process.on("SIGINT", shutdown); // For Ctrl+C during development
 
     async function shutdown() {
       try {
         logger.info("Shutting down gracefully...");
-        // Close HTTP server
         await stopGpsServices();
         await socketService.stop();
         server.close(() => {
           logger.info("HTTP server closed");
         });
-
         process.exit(0);
       } catch (error) {
         logger.error("Error during shutdown:", error);
         process.exit(1);
       }
     }
-
-    // Handle unhandled promise rejections
-    process.on("unhandledRejection", (reason, promise) => {
-      console.error("Unhandled Rejection at:", promise, "reason:", reason);
-    });
-
-    // Handle uncaught exceptions
-    process.on("uncaughtException", (error) => {
-      console.error("Uncaught Exception:", error);
-      process.exit(1); // Exit process after handling the exception
-    });
   } catch (error) {
     logger.error("Failed to start the server:", error);
     process.exit(1); // Exit the process on failure
   }
 }
 
-// Start the server
 async function shutdownWorker(runtimeRole: string) {
   logger.info(`Shutting down ${runtimeRole} process gracefully...`);
   await stopGpsServices();
@@ -154,4 +130,5 @@ function isRecoverableNetworkError(error: unknown): boolean {
   );
 }
 
+// Start the server
 startServer();

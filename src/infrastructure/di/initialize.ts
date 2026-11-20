@@ -46,7 +46,6 @@ import { registerPolicyDependencies } from "./mysql/policy-container";
 import { DatabaseSeeder } from "../persistence/seeders/DatabaseSeeder";
 import { convertUsersUserTypeToRoleFkFromConnection } from "../persistence/mysql/convertUsersUserTypeToRoleFk";
 import { registerVehicleGpsDependencies } from "./mysql/vehicleGps-container";
-import { DatabaseSeeder } from "../persistence/seeders/DatabaseSeeder";
 import { container } from "tsyringe";
 import { IVehicleGpsDeviceResolver } from "../../services/interfaces/IVehicleGpsDeviceResolver";
 import { IVehicleGpsQueue } from "../../services/interfaces/IVehicleGpsQueue";
@@ -184,15 +183,13 @@ export async function initializeORM(): Promise<{
     await mongoOrm.getSchemaGenerator().ensureIndexes();
     logger.info("MongoDB MikroORM initialized successfully");
 
-    await runSeeders(mySqlOrm);
-    logger.info("Seeders executed successfully");
-    if (process.env.NODE_ENV === "development") {
-      logger.info("Seeders skipped in development");
-    } else if (!shouldRunSeeders()) {
-      logger.info(`Seeders skipped for runtime role: ${getRuntimeRole()}`);
-    } else {
+    // Seeders run in every environment (feature/Report-), but only once per deployment:
+    // on the API process, never on the GPS worker processes started alongside it.
+    if (shouldRunSeeders()) {
       await runSeeders(mySqlOrm);
       logger.info("Seeders executed successfully");
+    } else {
+      logger.info(`Seeders skipped for runtime role: ${getRuntimeRole()}`);
     }
 
     return { mySqlOrm, mongoOrm };

@@ -29,8 +29,8 @@ export function shouldStartGpsWorker(): boolean {
   return role === 'all' || role === 'gps-worker' || role === 'gps-report-worker';
 }
 
-/** Seeders run only on the primary API process in non-development environments. */
+/** Seeders run only on the primary API process (in every environment), never on GPS workers. */
 export function shouldRunSeeders(): boolean {
   const role = getRuntimeRole();
-  return (role === 'all' || role === 'api') && process.env.NODE_ENV !== 'development';
+  return role === 'all' || role === 'api';
 }
