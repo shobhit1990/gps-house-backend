@@ -224,7 +224,7 @@ export class ClientService implements IClientService {
       isDeleted: false,
     });
     if (!unifiedUser) {
-      throw new AppError("Unified Client account not found", 404);
+      throw new AppError("Client not found", 404);
     }
 
     if (payload.password !== undefined) {
