@@ -1,11 +1,18 @@
 import { AddUserDto, UpdateUserDto } from "../../domain/dto/AddUserDto";
 import { LoginUserDto, RegisterUserDto } from "../../domain/dto/UserAuthDto";
 import { User } from "../../domain/entities/mysql/User";
+import { MenuType } from "../../domain/enums/MenuType";
+import { MenuSidebarResponse } from "../../domain/models/MenuSidebarResponse";
 
 export interface UserLoginResult {
   user: User;
   token: string;
   refreshToken: string;
+  menus: MenuSidebarResponse;
+}
+
+export interface UserLoginOptions {
+  allowedMenuTypes?: MenuType[];
 }
 
 export interface IUserService {
@@ -17,9 +24,15 @@ export interface IUserService {
 
   registerUser(payload: RegisterUserDto): Promise<User>;
 
-  loginUser(payload: LoginUserDto): Promise<UserLoginResult>;
+  loginUser(
+    payload: LoginUserDto,
+    options?: UserLoginOptions,
+  ): Promise<UserLoginResult>;
 
-  refreshAuthToken(refreshToken: string): Promise<UserLoginResult>;
+  refreshAuthToken(
+    refreshToken: string,
+    options?: UserLoginOptions,
+  ): Promise<UserLoginResult>;
 
   logout(refreshToken: string): Promise<void>;
 

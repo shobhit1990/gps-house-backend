@@ -5,6 +5,7 @@ import { inject, injectable } from "tsyringe";
 import { AddUserDto, UpdateUserDto } from "../../../domain/dto/AddUserDto";
 import { LoginUserDto, RefreshTokenDto } from "../../../domain/dto/UserAuthDto";
 import { CustomRequest } from "../../../domain/models/CustomRequest";
+import { MenuSidebarResponse } from "../../../domain/models/MenuSidebarResponse";
 import { IUserService } from "../../../services/interfaces/IUserService";
 import { asyncHandler } from "../../../utils/asyncHandler";
 import { formatValidationErrors } from "../../../utils/commonFunctions";
@@ -46,20 +47,21 @@ export class UserController {
 
   loginUser = asyncHandler(async (req: CustomRequest, res: Response) => {
     const dto = await this.validateDto(LoginUserDto, req.body);
-    const { user, token, refreshToken } = await this.userService.loginUser(dto);
+    const { user, token, refreshToken, menus } =
+      await this.userService.loginUser(dto);
     res.status(200).json({
       message: "Login successful",
-      data: this.toAuthResponse(user, token, refreshToken),
+      data: this.toAuthResponse(user, token, refreshToken, menus),
     });
   });
 
   refreshToken = asyncHandler(async (req: CustomRequest, res: Response) => {
     const dto = await this.validateDto(RefreshTokenDto, req.body);
-    const { user, token, refreshToken } =
+    const { user, token, refreshToken, menus } =
       await this.userService.refreshAuthToken(dto.refreshToken);
     res.status(200).json({
       message: "Token refreshed successfully",
-      data: this.toAuthResponse(user, token, refreshToken),
+      data: this.toAuthResponse(user, token, refreshToken, menus),
     });
   });
 
@@ -184,6 +186,7 @@ export class UserController {
     user: Awaited<ReturnType<IUserService["getUserById"]>>,
     token?: string,
     refreshToken?: string,
+    menus: MenuSidebarResponse = [],
   ) {
     return {
       externalId: user.externalId,
@@ -227,6 +230,7 @@ export class UserController {
       status: user.status,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
+      menus,
       ...(token ? { token } : {}),
       ...(refreshToken ? { refreshToken } : {}),
     };

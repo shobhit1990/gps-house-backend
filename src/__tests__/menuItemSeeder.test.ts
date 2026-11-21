@@ -25,6 +25,13 @@ function makeEm(options?: { existingMenus?: Map<string, StoredMenu> }) {
         return null;
       },
     ),
+    find: jest.fn(async (entity: unknown, where: Record<string, unknown>) => {
+      if (entity !== MenuItem) return [];
+      return [...menus.values()].filter((menu) => {
+        if (where.isDeleted === false) return !menu.isDeleted;
+        return true;
+      });
+    }),
     persist: jest.fn((entity: MenuItem) => {
       if (entity instanceof MenuItem) {
         if (!entity.id) {
@@ -68,10 +75,20 @@ describe("MenuItemSeeder", () => {
     expect(menus.size).toBe(menuCountAfterFirst);
     expect(menus.size).toBe(MENU_SEEDS.length);
 
-    const manage = menus.get(MenuName.Manage)!;
+    const vehicleParent = menus.get(MenuName.Vehicle)!;
     const vehicles = menus.get(MenuName.Vehicles)!;
-    expect(vehicles.parent).toBe(manage);
+    const dashboard = menus.get(MenuName.Dashboard)!;
+    const owner = menus.get(MenuName.Owner)!;
+    const technicianList = menus.get(MenuName.TechnicianList)!;
+    const user = menus.get(MenuName.User)!;
+
+    expect(vehicles.parent).toBe(vehicleParent);
+    expect(dashboard.parent).toBe(menus.get(MenuName.Home)!);
+    expect(owner.parent).toBe(menus.get(MenuName.Master)!);
+    expect(technicianList.parent).toBe(menus.get(MenuName.ManageTechnician)!);
+    expect(user.parent).toBe(menus.get(MenuName.UserGroups)!);
     expect(menus.get(MenuName.Home)!.parent).toBeUndefined();
+    expect(vehicleParent.parent).toBeUndefined();
 
     expect(vehicles.menuType).toBe(MenuType.Both);
     expect(vehicles.status).toBe(Status.ACTIVE);
@@ -112,11 +129,11 @@ describe("MenuItemSeeder", () => {
           key: MenuName.Vehicles,
           label: "Vehicles",
           priority: 1,
-          parentKey: MenuName.Manage,
+          parentKey: MenuName.Vehicle,
         },
       ]),
     ).toThrow(
-      /parent menu "manage" for "vehicles" is missing from MENU_SEEDS/i,
+      /parent menu "vehicle" for "vehicles" is missing from MENU_SEEDS/i,
     );
   });
 
