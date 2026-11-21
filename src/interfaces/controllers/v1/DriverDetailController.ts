@@ -98,9 +98,13 @@ export class DriverDetailController {
 
   createDriverDetail = asyncHandler(
     async (req: CustomRequest, res: Response) => {
-      const dto = plainToInstance(CreateDriverDetailDto, req.body, {
-        enableImplicitConversion: true,
-      });
+      const dto = plainToInstance(
+        CreateDriverDetailDto,
+        this.buildDriverDetailBody(req),
+        {
+          enableImplicitConversion: true,
+        },
+      );
       await this.validateDto(dto);
       const detail = await this.driverDetailService.createDriverDetail(
         dto,
@@ -115,9 +119,13 @@ export class DriverDetailController {
 
   updateDriverDetail = asyncHandler(
     async (req: CustomRequest, res: Response) => {
-      const dto = plainToInstance(UpdateDriverDetailDto, req.body, {
-        enableImplicitConversion: true,
-      });
+      const dto = plainToInstance(
+        UpdateDriverDetailDto,
+        this.buildDriverDetailBody(req),
+        {
+          enableImplicitConversion: true,
+        },
+      );
       await this.validateDto(dto);
       const detail = await this.driverDetailService.updateDriverDetail(
         this.getExternalId(req),
@@ -150,6 +158,102 @@ export class DriverDetailController {
       throw new AppError("Invalid driver detail ID", 400);
     }
     return externalId;
+  }
+
+  /**
+   * Builds create/update body and maps Upload Documents rows:
+   * - `documentName` (string or string[]) + `uploadDocument` files, or
+   * - `documents` JSON/array with optional file paths filled from uploads.
+   */
+  private buildDriverDetailBody(
+    req: Request,
+  ): Record<string, unknown> {
+    const body: Record<string, unknown> = { ...req.body };
+    const files = this.getUploadedFiles(req);
+    const documents = this.resolveDocuments(body, files);
+    if (documents !== undefined) {
+      body.documents = documents;
+    }
+    delete body.documentName;
+    delete body.uploadDocument;
+    return body;
+  }
+
+  private resolveDocuments(
+    body: Record<string, unknown>,
+    files: Express.Multer.File[],
+  ): Array<{ documentName: string; uploadDocument: string }> | undefined {
+    const parsedDocuments = this.parseDocumentsField(body.documents);
+    const documentNames = this.normalizeStringArray(body.documentName);
+
+    if (parsedDocuments) {
+      return parsedDocuments.map((document, index) => {
+        const file = files[index];
+        const uploadDocument = file
+          ? `/uploads/${file.filename}`
+          : String(document.uploadDocument ?? "").trim();
+        return {
+          documentName: String(document.documentName ?? "").trim(),
+          uploadDocument,
+        };
+      });
+    }
+
+    if (documentNames.length || files.length) {
+      const count = Math.max(documentNames.length, files.length);
+      return Array.from({ length: count }, (_, index) => ({
+        documentName: documentNames[index] ?? "",
+        uploadDocument: files[index]
+          ? `/uploads/${files[index].filename}`
+          : "",
+      }));
+    }
+
+    return undefined;
+  }
+
+  private parseDocumentsField(
+    value: unknown,
+  ): Array<Record<string, unknown>> | undefined {
+    if (value === undefined || value === null || value === "") {
+      return undefined;
+    }
+
+    let parsed: unknown = value;
+    if (typeof value === "string") {
+      try {
+        parsed = JSON.parse(value);
+      } catch {
+        throw new AppError("documents must be a valid JSON array", 400);
+      }
+    }
+
+    if (!Array.isArray(parsed)) {
+      throw new AppError("documents must be an array", 400);
+    }
+
+    return parsed as Array<Record<string, unknown>>;
+  }
+
+  private normalizeStringArray(value: unknown): string[] {
+    if (value === undefined || value === null || value === "") {
+      return [];
+    }
+    if (Array.isArray(value)) {
+      return value.map((item) => String(item).trim());
+    }
+    return [String(value).trim()];
+  }
+
+  private getUploadedFiles(req: Request): Express.Multer.File[] {
+    const files = req.files;
+    if (Array.isArray(files)) {
+      return files;
+    }
+    if (files && typeof files === "object") {
+      return Object.values(files).flat();
+    }
+    return [];
   }
 
   private async validateDto(dto: object): Promise<void> {

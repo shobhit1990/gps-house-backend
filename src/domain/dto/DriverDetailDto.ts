@@ -1,4 +1,4 @@
-import { Transform } from "class-transformer";
+import { Transform, Type } from "class-transformer";
 import {
   ArrayUnique,
   IsArray,
@@ -12,6 +12,7 @@ import {
   MaxLength,
   Min,
   ValidateIf,
+  ValidateNested,
 } from "class-validator";
 import { Status } from "../enums/status";
 
@@ -20,6 +21,19 @@ const enumMessage = (name: string, values: object) =>
 
 const trimString = ({ value }: { value: unknown }) =>
   typeof value === "string" ? value.trim() : value;
+
+export class DriverDocumentDto {
+  @IsString({ message: "Document name must be a string" })
+  @IsNotEmpty({ message: "Document name is required" })
+  @MaxLength(255)
+  @Transform(trimString)
+  documentName!: string;
+
+  @IsString({ message: "Upload document must be a string" })
+  @IsNotEmpty({ message: "Upload document is required" })
+  @Transform(trimString)
+  uploadDocument!: string;
+}
 
 class DriverDetailFields {
   @IsOptional()
@@ -115,6 +129,12 @@ class DriverDetailFields {
   @MaxLength(255)
   @Transform(trimString)
   address?: string | null;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => DriverDocumentDto)
+  documents?: DriverDocumentDto[];
 
   @IsOptional()
   @IsBoolean()

@@ -4,6 +4,7 @@ import { container } from "tsyringe";
 import { DriverDetailController } from "../../controllers/v1/DriverDetailController";
 import { authenticateUser } from "../../middlewares/userAuthentication";
 import { AppError } from "../../../utils/errors";
+import { upload } from "../../../utils/fileUpload";
 
 const router = Router();
 const controller = container.resolve(DriverDetailController);
@@ -36,8 +37,40 @@ router.post("/bulk-upload", (req, res, next) => {
 
 router.get("/getAll", controller.getDriverDetails);
 router.get("/getById/:externalId", controller.getDriverDetailById);
-router.post("/", controller.createDriverDetail);
-router.put("/update/:externalId", controller.updateDriverDetail);
+router.post(
+  "/",
+  (req, res, next) => {
+    upload.array("uploadDocument", 10)(req, res, (error) => {
+      if (error instanceof multer.MulterError) {
+        next(new AppError(error.message, 400));
+        return;
+      }
+      if (error) {
+        next(error);
+        return;
+      }
+      next();
+    });
+  },
+  controller.createDriverDetail,
+);
+router.put(
+  "/update/:externalId",
+  (req, res, next) => {
+    upload.array("uploadDocument", 10)(req, res, (error) => {
+      if (error instanceof multer.MulterError) {
+        next(new AppError(error.message, 400));
+        return;
+      }
+      if (error) {
+        next(error);
+        return;
+      }
+      next();
+    });
+  },
+  controller.updateDriverDetail,
+);
 router.delete("/delete/:externalId", controller.deleteDriverDetail);
 
 export default router;

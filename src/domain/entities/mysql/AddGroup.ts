@@ -10,7 +10,9 @@ import { Exclude, Expose } from "class-transformer";
 import { v4 as uuidv4 } from "uuid";
 import { Status } from "../../enums/status";
 import { Type } from "../../enums/Type";
+import { AddVehicle } from "./AddVehicle";
 import { Client } from "./Client";
+import { Transporter } from "./Transporter";
 
 @Entity({ tableName: "add_group" })
 export class AddGroup {
@@ -28,6 +30,16 @@ export class AddGroup {
 
   @Enum(() => Type)
   assignedTo!: Type;
+
+  /** Set when assignedTo === vehicle (master vehicle id). */
+  @Expose()
+  @ManyToOne(() => AddVehicle, { fieldName: "vehicle", nullable: true })
+  vehicle?: AddVehicle | null;
+
+  /** Set when assignedTo === transporter (master transporter id). */
+  @Expose()
+  @ManyToOne(() => Transporter, { fieldName: "transporter", nullable: true })
+  transporter?: Transporter | null;
 
   @ManyToOne(() => Client, { nullable: true })
   createdBy?: Client;

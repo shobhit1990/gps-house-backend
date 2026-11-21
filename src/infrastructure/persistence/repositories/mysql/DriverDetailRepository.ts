@@ -159,6 +159,7 @@ export class DriverDetailRepository implements IDriverDetailRepository {
       supervisorName: driverDetail.supervisorName,
       supervisorPhoneNumber: driverDetail.supervisorPhoneNumber,
       address: driverDetail.address,
+      documents: driverDetail.documents ?? [],
       licenseAvailable: driverDetail.licenseAvailable,
       licenseVerified: driverDetail.licenseVerified,
       enableGeoVerifiedAttendance: driverDetail.enableGeoVerifiedAttendance,

@@ -878,6 +878,12 @@ export class DriverDetailService implements IDriverDetailService {
       detail.supervisorPhoneNumber = payload.supervisorPhoneNumber;
     }
     if (payload.address !== undefined) detail.address = payload.address;
+    if (payload.documents !== undefined) {
+      detail.documents = payload.documents.map((document) => ({
+        documentName: document.documentName,
+        uploadDocument: document.uploadDocument,
+      }));
+    }
     if (payload.licenseAvailable !== undefined) {
       detail.licenseAvailable = payload.licenseAvailable;
     }
@@ -1090,6 +1096,12 @@ export class DriverDetailService implements IDriverDetailService {
       supervisorName: detail.supervisorName ?? null,
       supervisorPhoneNumber: detail.supervisorPhoneNumber ?? null,
       address: detail.address ?? null,
+      documents: Array.isArray(detail.documents)
+        ? detail.documents.map((document) => ({
+            documentName: document.documentName,
+            uploadDocument: document.uploadDocument,
+          }))
+        : [],
       licenseAvailable: detail.licenseAvailable,
       licenseVerified: detail.licenseVerified,
       enableGeoVerifiedAttendance: detail.enableGeoVerifiedAttendance,
