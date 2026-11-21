@@ -19,8 +19,11 @@ type MenuSeed = {
 /**
  * Sidebar tree seed. Keys are unique (`menu_items.key`).
  * Re-runs upsert by key and re-link parents — they do not insert duplicates.
+ *
+ * Top-level: Home, Master, Vehicles, Reports, Alerts, Settings, Support, Access Management
  */
 export const MENU_SEEDS: MenuSeed[] = [
+  // ── Top-level parents ──────────────────────────────────────────────
   {
     key: MenuName.Home,
     label: "Home",
@@ -29,19 +32,139 @@ export const MENU_SEEDS: MenuSeed[] = [
     url: "/home",
   },
   {
-    key: MenuName.Manage,
-    label: "Manage",
+    key: MenuName.Master,
+    label: "Master",
     priority: 2,
-    icon: "manage",
-    url: "/manage",
+    icon: "master",
+    url: "/master",
   },
+  {
+    key: MenuName.Vehicle,
+    label: "Vehicles",
+    priority: 3,
+    icon: "vehicles",
+    url: "/vehicles",
+  },
+  {
+    key: MenuName.Reports,
+    label: "Reports",
+    priority: 4,
+    icon: "reports",
+    url: "/reports",
+  },
+  {
+    key: MenuName.Alerts,
+    label: "Alerts",
+    priority: 5,
+    icon: "alerts",
+    url: "/alerts",
+  },
+  {
+    key: MenuName.Settings,
+    label: "Settings",
+    priority: 6,
+    icon: "settings",
+    url: "/settings",
+  },
+  {
+    key: MenuName.Support,
+    label: "Support",
+    priority: 7,
+    icon: "support",
+    url: "/support",
+  },
+  {
+    key: MenuName.AccessManagement,
+    label: "Access Management",
+    priority: 8,
+    icon: "access",
+    url: "/access-management",
+  },
+
+  // ── Home children ──────────────────────────────────────────────────
+  {
+    key: MenuName.Dashboard,
+    label: "Dashboard",
+    priority: 1,
+    icon: "pin",
+    url: "/dashboard",
+    parentKey: MenuName.Home,
+  },
+  {
+    key: MenuName.AdvancedDashboard,
+    label: "Advance Dashboard",
+    priority: 2,
+    icon: "pin",
+    url: "/advanced-dashboard",
+    parentKey: MenuName.Home,
+  },
+  {
+    key: MenuName.AnalyticsDashboard,
+    label: "Analytics Dashboard",
+    priority: 3,
+    icon: "pin",
+    url: "/analytics-dashboard",
+    parentKey: MenuName.Home,
+  },
+
+  // ── Master children ────────────────────────────────────────────────
+  {
+    key: MenuName.Owner,
+    label: "Owners",
+    priority: 1,
+    icon: "pin",
+    url: "/owner",
+    parentKey: MenuName.Master,
+  },
+  {
+    key: MenuName.Role,
+    label: "Roles",
+    priority: 2,
+    icon: "pin",
+    url: "/role",
+    parentKey: MenuName.Master,
+  },
+  {
+    key: MenuName.DeviceType,
+    label: "Device Type",
+    priority: 3,
+    icon: "pin",
+    url: "/device-type",
+    parentKey: MenuName.Master,
+  },
+  {
+    key: MenuName.GeoType,
+    label: "Geo Type",
+    priority: 4,
+    icon: "pin",
+    url: "/geo-type",
+    parentKey: MenuName.Master,
+  },
+  {
+    key: MenuName.DriverLicence,
+    label: "Driver Licence",
+    priority: 5,
+    icon: "pin",
+    url: "/driver-licence",
+    parentKey: MenuName.Master,
+  },
+  {
+    key: MenuName.ExpenseType,
+    label: "Expense Type",
+    priority: 6,
+    icon: "pin",
+    url: "/expense-type",
+    parentKey: MenuName.Master,
+  },
+
+  // ── Vehicles (Vehicle parent) children ─────────────────────────────
   {
     key: MenuName.Vehicles,
     label: "Vehicles",
     priority: 1,
     icon: "pin",
-    url: "/vehicles",
-    parentKey: MenuName.Manage,
+    url: "/vehicle",
+    parentKey: MenuName.Vehicle,
   },
   {
     key: MenuName.Devices,
@@ -49,7 +172,7 @@ export const MENU_SEEDS: MenuSeed[] = [
     priority: 2,
     icon: "pin",
     url: "/devices",
-    parentKey: MenuName.Manage,
+    parentKey: MenuName.Vehicle,
   },
   {
     key: MenuName.Transporter,
@@ -57,7 +180,7 @@ export const MENU_SEEDS: MenuSeed[] = [
     priority: 3,
     icon: "pin",
     url: "/transporter",
-    parentKey: MenuName.Manage,
+    parentKey: MenuName.Vehicle,
   },
   {
     key: MenuName.ManageTechnician,
@@ -65,7 +188,7 @@ export const MENU_SEEDS: MenuSeed[] = [
     priority: 4,
     icon: "pin",
     url: "/technician",
-    parentKey: MenuName.Manage,
+    parentKey: MenuName.Vehicle,
   },
   {
     key: MenuName.Client,
@@ -73,7 +196,7 @@ export const MENU_SEEDS: MenuSeed[] = [
     priority: 5,
     icon: "pin",
     url: "/client",
-    parentKey: MenuName.Manage,
+    parentKey: MenuName.Vehicle,
   },
   {
     key: MenuName.UserGroups,
@@ -81,7 +204,7 @@ export const MENU_SEEDS: MenuSeed[] = [
     priority: 6,
     icon: "pin",
     url: "/user-groups",
-    parentKey: MenuName.Manage,
+    parentKey: MenuName.Vehicle,
   },
   {
     key: MenuName.VehicleDetail,
@@ -89,7 +212,7 @@ export const MENU_SEEDS: MenuSeed[] = [
     priority: 7,
     icon: "pin",
     url: "/vehicle-detail",
-    parentKey: MenuName.Manage,
+    parentKey: MenuName.Vehicle,
   },
   {
     key: MenuName.DriverDetail,
@@ -97,7 +220,7 @@ export const MENU_SEEDS: MenuSeed[] = [
     priority: 8,
     icon: "pin",
     url: "/driver-detail",
-    parentKey: MenuName.Manage,
+    parentKey: MenuName.Vehicle,
   },
   {
     key: MenuName.Geofence,
@@ -105,7 +228,7 @@ export const MENU_SEEDS: MenuSeed[] = [
     priority: 9,
     icon: "pin",
     url: "/geofence",
-    parentKey: MenuName.Manage,
+    parentKey: MenuName.Vehicle,
   },
   {
     key: MenuName.PaymentDetail,
@@ -113,74 +236,289 @@ export const MENU_SEEDS: MenuSeed[] = [
     priority: 10,
     icon: "pin",
     url: "/payment-detail",
-    parentKey: MenuName.Manage,
+    parentKey: MenuName.Vehicle,
+  },
+  {
+    key: MenuName.Enquiry,
+    label: "Enquiry",
+    priority: 11,
+    icon: "pin",
+    url: "/enquiry",
+    parentKey: MenuName.Vehicle,
   },
   {
     key: MenuName.DeviceInventory,
     label: "Device Inventory",
-    priority: 11,
+    priority: 12,
     icon: "pin",
     url: "/device-inventory",
-    parentKey: MenuName.Manage,
+    parentKey: MenuName.Vehicle,
   },
+
+  // ── ManageTechnician children ──────────────────────────────────────
   {
-    key: MenuName.Reports,
-    label: "Reports",
-    priority: 3,
-    icon: "reports",
-    url: "/reports",
-  },
-  {
-    key: MenuName.Alerts,
-    label: "Alerts",
-    priority: 4,
-    icon: "alerts",
-    url: "/alerts",
-  },
-  {
-    key: MenuName.Settings,
-    label: "Settings",
-    priority: 5,
-    icon: "settings",
-    url: "/settings",
-  },
-  {
-    key: MenuName.Support,
-    label: "Support",
-    priority: 6,
-    icon: "support",
-    url: "/support",
-  },
-  {
-    key: MenuName.AccessManagement,
-    label: "Access Management",
-    priority: 7,
-    icon: "access",
-    url: "/access-management",
-  },
-  {
-    key: MenuName.Owner,
-    label: "Owner",
+    key: MenuName.TechnicianList,
+    label: "Technician List",
     priority: 1,
-    icon: "users",
-    url: "/owner",
-    parentKey: MenuName.AccessManagement,
+    icon: "pin",
+    url: "/technician/list",
+    parentKey: MenuName.ManageTechnician,
   },
   {
-    key: MenuName.Role,
-    label: "Role",
+    key: MenuName.JobSheet,
+    label: "Job Sheet",
     priority: 2,
     icon: "pin",
-    url: "/role",
-    parentKey: MenuName.AccessManagement,
+    url: "/jobsheet",
+    parentKey: MenuName.ManageTechnician,
   },
+
+  // ── UserGroups children ────────────────────────────────────────────
   {
     key: MenuName.User,
     label: "User",
-    priority: 3,
+    priority: 1,
     icon: "pin",
     url: "/user",
-    parentKey: MenuName.AccessManagement,
+    parentKey: MenuName.UserGroups,
+  },
+  {
+    key: MenuName.Group,
+    label: "Group",
+    priority: 2,
+    icon: "pin",
+    url: "/group",
+    parentKey: MenuName.UserGroups,
+  },
+
+  // ── Reports children ───────────────────────────────────────────────
+  {
+    key: MenuName.CoinBanking,
+    label: "Coin Banking",
+    priority: 1,
+    icon: "pin",
+    url: "/reports/coin-banking",
+    parentKey: MenuName.Reports,
+  },
+  {
+    key: MenuName.DistanceReport,
+    label: "Distance Report",
+    priority: 2,
+    icon: "pin",
+    url: "/reports/distance",
+    parentKey: MenuName.Reports,
+  },
+  {
+    key: MenuName.DriverAssignmentReport,
+    label: "Driver Assignment Report",
+    priority: 3,
+    icon: "pin",
+    url: "/reports/driver-assignment",
+    parentKey: MenuName.Reports,
+  },
+  {
+    key: MenuName.ExpenseReport,
+    label: "Expense Report",
+    priority: 4,
+    icon: "pin",
+    url: "/reports/expense",
+    parentKey: MenuName.Reports,
+  },
+  {
+    key: MenuName.GeofenceReport,
+    label: "Geofence Report",
+    priority: 5,
+    icon: "pin",
+    url: "/reports/geofence",
+    parentKey: MenuName.Reports,
+  },
+  {
+    key: MenuName.GoogleMapApiRecord,
+    label: "Google Map API Record",
+    priority: 6,
+    icon: "pin",
+    url: "/reports/google-map-api-record",
+    parentKey: MenuName.Reports,
+  },
+  {
+    key: MenuName.IdleSummaryReport,
+    label: "Idle Summary Report",
+    priority: 7,
+    icon: "pin",
+    url: "/reports/idle-summary",
+    parentKey: MenuName.Reports,
+  },
+  {
+    key: MenuName.PoiReport,
+    label: "POI Report",
+    priority: 8,
+    icon: "pin",
+    url: "/reports/poi",
+    parentKey: MenuName.Reports,
+  },
+  {
+    key: MenuName.RegisterMobileReport,
+    label: "Register Mobile Report",
+    priority: 9,
+    icon: "pin",
+    url: "/reports/register-mobile",
+    parentKey: MenuName.Reports,
+  },
+  {
+    key: MenuName.RideReport,
+    label: "Ride Report",
+    priority: 10,
+    icon: "pin",
+    url: "/reports/ride",
+    parentKey: MenuName.Reports,
+  },
+  {
+    key: MenuName.SendCommandLogs,
+    label: "Send Command Logs",
+    priority: 11,
+    icon: "pin",
+    url: "/reports/send-command-logs",
+    parentKey: MenuName.Reports,
+  },
+  {
+    key: MenuName.SensorReport,
+    label: "Sensor Report",
+    priority: 12,
+    icon: "pin",
+    url: "/reports/sensor",
+    parentKey: MenuName.Reports,
+  },
+  {
+    key: MenuName.SimTrackingReport,
+    label: "SIM Tracking Report",
+    priority: 13,
+    icon: "pin",
+    url: "/reports/sim-tracking",
+    parentKey: MenuName.Reports,
+  },
+  {
+    key: MenuName.SpeedAndDistance,
+    label: "Speed & Distance",
+    priority: 14,
+    icon: "pin",
+    url: "/reports/speed-and-distance",
+    parentKey: MenuName.Reports,
+  },
+  {
+    key: MenuName.StatusReport,
+    label: "Status Report",
+    priority: 15,
+    icon: "pin",
+    url: "/reports/status",
+    parentKey: MenuName.Reports,
+  },
+  {
+    key: MenuName.StoppageSummaryReport,
+    label: "Stoppage Summary Report",
+    priority: 16,
+    icon: "pin",
+    url: "/reports/stoppage-summary",
+    parentKey: MenuName.Reports,
+  },
+  {
+    key: MenuName.SubscriptionChangeReport,
+    label: "Subscription Change Report",
+    priority: 17,
+    icon: "pin",
+    url: "/reports/subscription-change",
+    parentKey: MenuName.Reports,
+  },
+  {
+    key: MenuName.SubscriptionExpiredReport,
+    label: "Subscription Expired Report",
+    priority: 18,
+    icon: "pin",
+    url: "/reports/subscription-expired",
+    parentKey: MenuName.Reports,
+  },
+  {
+    key: MenuName.TravelSummaryReport,
+    label: "Travel Summary Report",
+    priority: 19,
+    icon: "pin",
+    url: "/reports/travel-summary",
+    parentKey: MenuName.Reports,
+  },
+  {
+    key: MenuName.VehicleLogReport,
+    label: "Vehicle Log Report",
+    priority: 20,
+    icon: "pin",
+    url: "/reports/vehicle-log",
+    parentKey: MenuName.Reports,
+  },
+
+  // ── Alerts children ────────────────────────────────────────────────
+  {
+    key: MenuName.AddAlerts,
+    label: "Add Alerts",
+    priority: 1,
+    icon: "pin",
+    url: "/alerts/add",
+    parentKey: MenuName.Alerts,
+  },
+  {
+    key: MenuName.NotificationList,
+    label: "Notification List",
+    priority: 2,
+    icon: "pin",
+    url: "/alerts/notifications",
+    parentKey: MenuName.Alerts,
+  },
+  {
+    key: MenuName.ServiceMaintenance,
+    label: "Service & Maintenance",
+    priority: 3,
+    icon: "pin",
+    url: "/service-maintenance",
+    parentKey: MenuName.Alerts,
+  },
+  {
+    key: MenuName.ParkedScheduler,
+    label: "Parked Scheduler",
+    priority: 4,
+    icon: "pin",
+    url: "/parked-scheduler",
+    parentKey: MenuName.Alerts,
+  },
+  {
+    key: MenuName.Announcement,
+    label: "Announcement",
+    priority: 5,
+    icon: "pin",
+    url: "/announcement",
+    parentKey: MenuName.Alerts,
+  },
+
+  // ── Support children ───────────────────────────────────────────────
+  {
+    key: MenuName.RaiseTicket,
+    label: "Raise Ticket",
+    priority: 1,
+    icon: "pin",
+    url: "/raise-ticket",
+    parentKey: MenuName.Support,
+  },
+  {
+    key: MenuName.AnswerTicket,
+    label: "Answer Ticket",
+    priority: 2,
+    icon: "pin",
+    url: "/answer-ticket",
+    parentKey: MenuName.Support,
+  },
+  {
+    key: MenuName.Policy,
+    label: "Policy",
+    priority: 3,
+    icon: "pin",
+    url: "/policy",
+    parentKey: MenuName.Support,
   },
 ];
 
@@ -242,6 +580,7 @@ export class MenuItemSeeder extends Seeder {
 
       const menusByKey = await this.upsertMenus(em);
       await this.linkParents(em, menusByKey);
+      await this.softDeleteObsoleteMenus(em, menusByKey);
 
       logger.info(
         `MenuItemSeeder finished. Upserted ${menusByKey.size} menu item(s).`,
@@ -319,5 +658,30 @@ export class MenuItemSeeder extends Seeder {
     }
 
     await em.flush();
+  }
+
+  /** Soft-delete catalog rows that are no longer in MENU_SEEDS (e.g. old "manage"). */
+  private async softDeleteObsoleteMenus(
+    em: EntityManager,
+    menusByKey: Map<MenuName, MenuItem>,
+  ): Promise<void> {
+    const activeMenus = await em.find(MenuItem, { isDeleted: false });
+    const seedKeys = new Set<string>([...menusByKey.keys()]);
+    let removed = 0;
+
+    for (const menu of activeMenus) {
+      if (seedKeys.has(menu.key)) {
+        continue;
+      }
+      menu.isDeleted = true;
+      menu.deletedAt = new Date();
+      menu.status = Status.INACTIVE;
+      removed += 1;
+      logger.info(`Menu "${menu.key}" soft-deleted (obsolete).`);
+    }
+
+    if (removed > 0) {
+      await em.flush();
+    }
   }
 }

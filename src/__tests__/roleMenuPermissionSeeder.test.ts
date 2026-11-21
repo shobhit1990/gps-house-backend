@@ -59,11 +59,38 @@ function makeEm(options?: {
     Math.max(0, ...[...permissions.values()].map((p) => p.id)) + 1;
 
   const em = {
-    find: jest.fn(async (entity: unknown) => {
-      if (entity === Role) return roles;
-      if (entity === MenuItem) return menus;
-      return [];
-    }),
+    find: jest.fn(
+      async (
+        entity: unknown,
+        where?: Record<string, unknown>,
+        _options?: unknown,
+      ) => {
+        if (entity === Role) {
+          return roles.filter((role) => {
+            if (where?.isDeleted === false && role.isDeleted) return false;
+            if (where?.status === Status.ACTIVE && role.status !== Status.ACTIVE) {
+              return false;
+            }
+            return true;
+          });
+        }
+        if (entity === MenuItem) {
+          return menus.filter((menu) => !menu.isDeleted);
+        }
+        if (entity === RoleMenuPermission) {
+          const roleId = where?.role;
+          return [...permissions.values()].filter((permission) => {
+            if (where?.isDeleted === false && permission.isDeleted) return false;
+            const permissionRoleId =
+              typeof permission.role === "object"
+                ? permission.role.id
+                : Number(permission.role);
+            return roleId === undefined || permissionRoleId === roleId;
+          });
+        }
+        return [];
+      },
+    ),
     findOne: jest.fn(
       async (entity: unknown, where: Record<string, unknown>) => {
         if (entity === RoleMenuPermission) {
@@ -95,11 +122,12 @@ describe("RoleMenuPermissionSeeder", () => {
     jest.restoreAllMocks();
   });
 
-  test("maps every menu to every role", async () => {
+  test("maps every MENU_SEEDS menu to every role", async () => {
     const { em, permissions, roles, menus } = makeEm();
 
     await new RoleMenuPermissionSeeder().run(em);
 
+    expect(menus.length).toBe(MENU_SEEDS.length);
     expect(permissions.size).toBe(roles.length * menus.length);
   });
 
@@ -154,6 +182,33 @@ describe("RoleMenuPermissionSeeder", () => {
     await seeder.run(em);
 
     expect(permissions.size).toBe(countAfterFirst);
+    expect(countAfterFirst).toBe(6 * MENU_SEEDS.length);
+  });
+
+  test("soft-deletes permissions for obsolete menus", async () => {
+    const roles = [makeRole(1, Roles.ADMIN)];
+    const home = makeMenu(1, MenuName.Home);
+    const obsoleteMenu = makeMenu(99, "manage");
+    const obsoletePermission = Object.assign(new RoleMenuPermission(), {
+      id: 50,
+      role: roles[0],
+      menuItem: obsoleteMenu,
+      isDeleted: false,
+      view: true,
+      status: Status.ACTIVE,
+    }) as StoredPermission;
+
+    const { em, permissions } = makeEm({
+      roles,
+      menus: [home],
+      existingPermissions: new Map([["1:99", obsoletePermission]]),
+    });
+
+    await new RoleMenuPermissionSeeder().run(em);
+
+    expect(obsoletePermission.isDeleted).toBe(true);
+    expect(obsoletePermission.status).toBe(Status.INACTIVE);
+    expect(permissions.get("1:1")).toBeDefined();
   });
 
   test("warns when roles are missing", async () => {

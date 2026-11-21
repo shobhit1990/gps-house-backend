@@ -10,6 +10,7 @@ import { TimeZone } from "../domain/entities/mysql/TimeZone";
 import { User } from "../domain/entities/mysql/User";
 import { InactiveTime } from "../domain/enums/InactiveTime";
 import { Status } from "../domain/enums/status";
+import { MenuType } from "../domain/enums/MenuType";
 import { UserType } from "../domain/enums/UserType";
 import { IUserRepository } from "../domain/repositories/mysql/IUserRepository";
 import { AppError } from "../utils/errors";
@@ -24,13 +25,22 @@ import {
   verifyPassword,
 } from "../utils/passwordHash";
 import { assignUserRole } from "../utils/userRoleAssignment";
-import { IUserService, UserLoginResult } from "./interfaces/IUserService";
+import { IMenuItemService } from "./interfaces/IMenuItemService";
+import {
+  IUserService,
+  UserLoginOptions,
+  UserLoginResult,
+} from "./interfaces/IUserService";
+
+const DEFAULT_LOGIN_MENU_TYPES: MenuType[] = [MenuType.Web, MenuType.Both];
 
 @injectable()
 export class UserService implements IUserService {
   constructor(
     @inject("IUserRepository")
     private readonly userRepository: IUserRepository,
+    @inject("IMenuItemService")
+    private readonly menuItemService: IMenuItemService,
     @inject(EntityManager)
     private readonly em: EntityManager,
   ) {}
@@ -310,7 +320,10 @@ export class UserService implements IUserService {
     return client;
   }
 
-  async loginUser(payload: LoginUserDto): Promise<UserLoginResult> {
+  async loginUser(
+    payload: LoginUserDto,
+    options?: UserLoginOptions,
+  ): Promise<UserLoginResult> {
     const identifiers = [
       payload.userName,
       payload.email,
@@ -343,10 +356,13 @@ export class UserService implements IUserService {
       );
     }
 
-    return this.issueTokens(user);
+    return this.issueTokens(user, undefined, options);
   }
 
-  async refreshAuthToken(refreshToken: string): Promise<UserLoginResult> {
+  async refreshAuthToken(
+    refreshToken: string,
+    options?: UserLoginOptions,
+  ): Promise<UserLoginResult> {
     const presentedTokenHash = hashRefreshToken(refreshToken);
     const user =
       await this.userRepository.getUserForRefreshToken(presentedTokenHash);
@@ -354,7 +370,7 @@ export class UserService implements IUserService {
       throw new AppError("Invalid or expired refresh token", 401);
     }
 
-    return this.issueTokens(user, presentedTokenHash);
+    return this.issueTokens(user, presentedTokenHash, options);
   }
 
   async logout(refreshToken: string): Promise<void> {
@@ -369,6 +385,7 @@ export class UserService implements IUserService {
   private async issueTokens(
     user: User,
     expectedRefreshTokenHash?: string,
+    options?: UserLoginOptions,
   ): Promise<UserLoginResult> {
     const token = createAuthToken(user);
     const refresh = createRefreshToken();
@@ -384,10 +401,16 @@ export class UserService implements IUserService {
       throw new AppError("Invalid or expired refresh token", 401);
     }
 
+    const menus = await this.menuItemService.getUserMenus({
+      userId: user.id,
+      allowedMenuTypes: options?.allowedMenuTypes ?? DEFAULT_LOGIN_MENU_TYPES,
+    });
+
     return {
       user,
       token,
       refreshToken: refresh.token,
+      menus,
     };
   }
 

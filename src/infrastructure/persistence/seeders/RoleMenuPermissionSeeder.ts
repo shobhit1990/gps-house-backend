@@ -6,6 +6,7 @@ import { Role } from "../../../domain/entities/mysql/Role";
 import { RoleMenuPermission } from "../../../domain/entities/mysql/RoleMenuPermission";
 import { Roles } from "../../../domain/enums/Roles";
 import { Status } from "../../../domain/enums/status";
+import { MENU_SEEDS } from "./MenuItemSeeder";
 
 type PermissionFlags = {
   view: boolean;
@@ -59,9 +60,10 @@ function clearSoftDelete(entity: RoleMenuPermission): void {
 }
 
 /**
- * Every active role gets every active menu mapped.
+ * Every active role gets every MENU_SEEDS menu mapped.
  * SUPER_ADMIN / ADMIN → all permission flags true.
  * All other roles → all permission flags false.
+ * Permissions for menus no longer in MENU_SEEDS are soft-deleted.
  */
 export class RoleMenuPermissionSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
@@ -81,10 +83,7 @@ export class RoleMenuPermissionSeeder extends Seeder {
         return;
       }
 
-      const menus = await em.find(MenuItem, {
-        isDeleted: false,
-        status: Status.ACTIVE,
-      });
+      const menus = await this.loadSeedMenus(em);
       if (menus.length === 0) {
         logger.warn(
           "RoleMenuPermissionSeeder: no active menu items found. Run MenuItemSeeder first.",
@@ -92,8 +91,10 @@ export class RoleMenuPermissionSeeder extends Seeder {
         return;
       }
 
+      const activeMenuIds = new Set(menus.map((menu) => menu.id));
       let created = 0;
       let updated = 0;
+      let removed = 0;
 
       for (const role of roles) {
         const flags = FULL_ACCESS_ROLES.has(role.roleCode)
@@ -124,6 +125,12 @@ export class RoleMenuPermissionSeeder extends Seeder {
           }
         }
 
+        removed += await this.softDeleteObsoleteForRole(
+          em,
+          role,
+          activeMenuIds,
+        );
+
         logger.info(
           `RoleMenuPermissionSeeder: role "${role.roleCode}" → ${menus.length} menu(s), fullAccess=${FULL_ACCESS_ROLES.has(role.roleCode)}.`,
         );
@@ -131,7 +138,7 @@ export class RoleMenuPermissionSeeder extends Seeder {
 
       await em.flush();
       logger.info(
-        `RoleMenuPermissionSeeder finished. created=${created}, updated=${updated}.`,
+        `RoleMenuPermissionSeeder finished. menus=${menus.length}/${MENU_SEEDS.length}, roles=${roles.length}, created=${created}, updated=${updated}, softDeleted=${removed}.`,
       );
     } catch (error) {
       logger.error("RoleMenuPermissionSeeder error:", {
@@ -139,6 +146,51 @@ export class RoleMenuPermissionSeeder extends Seeder {
       });
       throw error;
     }
+  }
+
+  private async loadSeedMenus(em: EntityManager): Promise<MenuItem[]> {
+    const seedKeys = MENU_SEEDS.map((seed) => seed.key);
+    const menus = await em.find(MenuItem, {
+      key: { $in: seedKeys },
+      isDeleted: false,
+      status: Status.ACTIVE,
+    });
+
+    const foundKeys = new Set(menus.map((menu) => menu.key));
+    const missing = seedKeys.filter((key) => !foundKeys.has(key));
+    if (missing.length > 0) {
+      logger.warn(
+        `RoleMenuPermissionSeeder: missing ${missing.length} menu(s) from MENU_SEEDS: ${missing.join(", ")}. Run MenuItemSeeder first.`,
+      );
+    }
+
+    return menus;
+  }
+
+  private async softDeleteObsoleteForRole(
+    em: EntityManager,
+    role: Role,
+    activeMenuIds: Set<number>,
+  ): Promise<number> {
+    const existing = await em.find(
+      RoleMenuPermission,
+      { role: role.id, isDeleted: false },
+      { populate: ["menuItem"] },
+    );
+
+    let removed = 0;
+    for (const permission of existing) {
+      const menuId = permission.menuItem?.id;
+      if (Number.isSafeInteger(menuId) && activeMenuIds.has(menuId!)) {
+        continue;
+      }
+      permission.isDeleted = true;
+      permission.deletedAt = new Date();
+      permission.status = Status.INACTIVE;
+      em.persist(permission);
+      removed += 1;
+    }
+    return removed;
   }
 }
 

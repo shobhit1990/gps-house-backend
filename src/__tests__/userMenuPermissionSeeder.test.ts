@@ -2,14 +2,27 @@ import "reflect-metadata";
 import { EntityManager } from "@mikro-orm/mysql";
 import { logger } from "../configs/logger";
 import { MenuItem } from "../domain/entities/mysql/MenuItem";
+import { Role } from "../domain/entities/mysql/Role";
+import { RoleMenuPermission } from "../domain/entities/mysql/RoleMenuPermission";
 import { User } from "../domain/entities/mysql/User";
 import { UserMenuPermission } from "../domain/entities/mysql/UserMenuPermission";
 import { MenuName } from "../domain/enums/MenuName";
+import { Roles } from "../domain/enums/Roles";
 import { Status } from "../domain/enums/status";
 import { MENU_SEEDS } from "../infrastructure/persistence/seeders/MenuItemSeeder";
 import { UserMenuPermissionSeeder } from "../infrastructure/persistence/seeders/UserMenuPermissionSeeder";
 
 type StoredPermission = UserMenuPermission & { id: number };
+
+function makeRole(id: number, roleCode: Roles): Role {
+  return Object.assign(new Role(), {
+    id,
+    roleCode,
+    name: roleCode,
+    status: Status.ACTIVE,
+    isDeleted: false,
+  });
+}
 
 function makeMenu(id: number, key: string): MenuItem {
   return Object.assign(new MenuItem(), {
@@ -23,46 +36,74 @@ function makeMenu(id: number, key: string): MenuItem {
 }
 
 function makeEm(options?: {
-  admin?: User | null;
+  users?: User[];
   menus?: MenuItem[];
+  rolePermissions?: RoleMenuPermission[];
   existingPermissions?: Map<string, StoredPermission>;
 }) {
-  const admin =
-    options?.admin === undefined
-      ? Object.assign(new User(), {
-          id: 1,
-          userName: "admin",
-          isDeleted: false,
-          status: Status.ACTIVE,
-        })
-      : options.admin;
+  const superAdminRole = makeRole(1, Roles.SUPER_ADMIN);
+  const clientRole = makeRole(2, Roles.CLIENT);
+
+  const users =
+    options?.users ??
+    [
+      Object.assign(new User(), {
+        id: 1,
+        userName: "admin",
+        isDeleted: false,
+        status: Status.ACTIVE,
+        userType: superAdminRole,
+      }),
+    ];
 
   const menus =
     options?.menus ??
     MENU_SEEDS.map((seed, index) => makeMenu(index + 1, seed.key));
 
+  const rolePermissions = options?.rolePermissions ?? [];
   const permissions =
     options?.existingPermissions ?? new Map<string, StoredPermission>();
   let nextPermissionId =
     Math.max(0, ...[...permissions.values()].map((p) => p.id)) + 1;
 
   const em = {
-    find: jest.fn(async (entity: unknown) => {
-      if (entity === MenuItem) return menus;
-      return [];
-    }),
+    find: jest.fn(
+      async (
+        entity: unknown,
+        where?: Record<string, unknown>,
+        _options?: unknown,
+      ) => {
+        if (entity === User) {
+          return users.filter((user) => {
+            if (where?.isDeleted === false && user.isDeleted) return false;
+            if (where?.status === Status.ACTIVE && user.status !== Status.ACTIVE) {
+              return false;
+            }
+            return true;
+          });
+        }
+        if (entity === MenuItem) {
+          return menus.filter((menu) => !menu.isDeleted);
+        }
+        if (entity === RoleMenuPermission) {
+          return rolePermissions;
+        }
+        if (entity === UserMenuPermission) {
+          const userId = where?.user;
+          return [...permissions.values()].filter((permission) => {
+            if (where?.isDeleted === false && permission.isDeleted) return false;
+            const permissionUserId =
+              typeof permission.user === "object"
+                ? permission.user.id
+                : Number(permission.user);
+            return userId === undefined || permissionUserId === userId;
+          });
+        }
+        return [];
+      },
+    ),
     findOne: jest.fn(
       async (entity: unknown, where: Record<string, unknown>) => {
-        if (entity === User) {
-          if (
-            where.userName === "admin" &&
-            where.isDeleted === false &&
-            where.status === Status.ACTIVE
-          ) {
-            return admin;
-          }
-          return null;
-        }
         if (entity === UserMenuPermission) {
           return permissions.get(`${where.user}:${where.menuItem}`) ?? null;
         }
@@ -84,7 +125,7 @@ function makeEm(options?: {
     flush: jest.fn(async () => undefined),
   } as unknown as EntityManager;
 
-  return { em, admin, menus, permissions };
+  return { em, users, menus, permissions, superAdminRole, clientRole };
 }
 
 describe("UserMenuPermissionSeeder", () => {
@@ -92,14 +133,23 @@ describe("UserMenuPermissionSeeder", () => {
     jest.restoreAllMocks();
   });
 
-  test("gives admin full access on every active menu", async () => {
-    const { em, permissions, admin, menus } = makeEm();
+  test("maps every MENU_SEEDS menu to every active user", async () => {
+    const { em, permissions, users, menus } = makeEm();
 
     await new UserMenuPermissionSeeder().run(em);
 
-    expect(permissions.size).toBe(menus.length);
+    expect(menus.length).toBe(MENU_SEEDS.length);
+    expect(permissions.size).toBe(users.length * menus.length);
+  });
+
+  test("gives SUPER_ADMIN full access on every active menu", async () => {
+    const { em, permissions, users, menus } = makeEm();
+    const admin = users[0];
+
+    await new UserMenuPermissionSeeder().run(em);
+
     for (const menu of menus) {
-      const permission = permissions.get(`${admin!.id}:${menu.id}`)!;
+      const permission = permissions.get(`${admin.id}:${menu.id}`)!;
       expect(permission).toBeDefined();
       expect(permission.view).toBe(true);
       expect(permission.add).toBe(true);
@@ -111,6 +161,45 @@ describe("UserMenuPermissionSeeder", () => {
       expect(permission.isDeleted).toBe(false);
       expect(permission.status).toBe(Status.ACTIVE);
     }
+  });
+
+  test("copies role permission flags for non-admin users", async () => {
+    const clientRole = makeRole(2, Roles.CLIENT);
+    const client = Object.assign(new User(), {
+      id: 5,
+      userName: "client1",
+      isDeleted: false,
+      status: Status.ACTIVE,
+      userType: clientRole,
+    });
+    const home = makeMenu(1, MenuName.Home);
+    const rolePermission = Object.assign(new RoleMenuPermission(), {
+      role: clientRole,
+      menuItem: home,
+      view: true,
+      add: false,
+      edit: false,
+      delete: false,
+      filter: true,
+      print: false,
+      excel: false,
+      isDeleted: false,
+      status: Status.ACTIVE,
+    });
+
+    const { em, permissions } = makeEm({
+      users: [client],
+      menus: [home],
+      rolePermissions: [rolePermission],
+    });
+
+    await new UserMenuPermissionSeeder().run(em);
+
+    const permission = permissions.get(`5:1`)!;
+    expect(permission.view).toBe(true);
+    expect(permission.filter).toBe(true);
+    expect(permission.add).toBe(false);
+    expect(permission.edit).toBe(false);
   });
 
   test("does not duplicate permissions on re-run", async () => {
@@ -125,12 +214,13 @@ describe("UserMenuPermissionSeeder", () => {
     expect(permissions.size).toBe(MENU_SEEDS.length);
   });
 
-  test("reactivates soft-deleted admin permission rows", async () => {
+  test("reactivates soft-deleted permission rows", async () => {
     const admin = Object.assign(new User(), {
       id: 1,
       userName: "admin",
       isDeleted: false,
       status: Status.ACTIVE,
+      userType: makeRole(1, Roles.SUPER_ADMIN),
     });
     const home = makeMenu(10, MenuName.Home);
     const softDeleted = Object.assign(new UserMenuPermission(), {
@@ -144,7 +234,7 @@ describe("UserMenuPermissionSeeder", () => {
     }) as StoredPermission;
 
     const { em, permissions } = makeEm({
-      admin,
+      users: [admin],
       menus: [home],
       existingPermissions: new Map([["1:10", softDeleted]]),
     });
@@ -157,15 +247,47 @@ describe("UserMenuPermissionSeeder", () => {
     expect(softDeleted.status).toBe(Status.ACTIVE);
   });
 
-  test("warns when admin user is missing", async () => {
+  test("soft-deletes permissions for obsolete menus", async () => {
+    const admin = Object.assign(new User(), {
+      id: 1,
+      userName: "admin",
+      isDeleted: false,
+      status: Status.ACTIVE,
+      userType: makeRole(1, Roles.SUPER_ADMIN),
+    });
+    const home = makeMenu(1, MenuName.Home);
+    const obsoleteMenu = makeMenu(99, "manage");
+    const obsoletePermission = Object.assign(new UserMenuPermission(), {
+      id: 50,
+      user: admin,
+      menuItem: obsoleteMenu,
+      isDeleted: false,
+      view: true,
+      status: Status.ACTIVE,
+    }) as StoredPermission;
+
+    const { em, permissions } = makeEm({
+      users: [admin],
+      menus: [home],
+      existingPermissions: new Map([["1:99", obsoletePermission]]),
+    });
+
+    await new UserMenuPermissionSeeder().run(em);
+
+    expect(obsoletePermission.isDeleted).toBe(true);
+    expect(obsoletePermission.status).toBe(Status.INACTIVE);
+    expect(permissions.get("1:1")).toBeDefined();
+  });
+
+  test("warns when no active users exist", async () => {
     const warnSpy = jest.spyOn(logger, "warn").mockImplementation(() => logger);
-    const { em, permissions } = makeEm({ admin: null });
+    const { em, permissions } = makeEm({ users: [] });
 
     await new UserMenuPermissionSeeder().run(em);
 
     expect(permissions.size).toBe(0);
     expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('active user "admin" not found'),
+      expect.stringContaining("no active users found"),
     );
   });
 });
