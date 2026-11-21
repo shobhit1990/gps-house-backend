@@ -897,14 +897,27 @@ export class DriverDetailService implements IDriverDetailService {
     if (payload.reason !== undefined) detail.reason = payload.reason;
   }
 
-  private toDate(value?: string | null): Date | null | undefined {
+  /** MikroORM `type: "date"` expects YYYY-MM-DD strings, not Date objects. */
+  private toDate(value?: string | null): string | null | undefined {
     if (value === undefined) return undefined;
     if (value === null) return null;
-    return new Date(value);
+    const text = value.trim();
+    if (!text) return null;
+    const isoDate = /^(\d{4})-(\d{2})-(\d{2})/.exec(text);
+    if (isoDate) {
+      return `${isoDate[1]}-${isoDate[2]}-${isoDate[3]}`;
+    }
+    const date = new Date(text);
+    if (Number.isNaN(date.getTime())) return null;
+    return date.toISOString().slice(0, 10);
   }
 
-  private toExportDate(value?: Date | null): string {
+  private toExportDate(value?: string | Date | null): string {
     if (!value) return "";
+    if (typeof value === "string") {
+      const isoDate = /^(\d{4})-(\d{2})-(\d{2})/.exec(value.trim());
+      if (isoDate) return `${isoDate[1]}-${isoDate[2]}-${isoDate[3]}`;
+    }
     const date = value instanceof Date ? value : new Date(value);
     if (Number.isNaN(date.getTime())) return "";
     return date.toISOString().slice(0, 10);

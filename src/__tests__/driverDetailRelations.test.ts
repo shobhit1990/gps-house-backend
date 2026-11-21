@@ -356,13 +356,13 @@ describe("DriverDetail ManyToMany relation inputs", () => {
     const { service, detail } = makeService();
     detail.deviceId = "device-1";
     detail.phoneNumber = "9999999999";
-    detail.dateOfJoining = new Date("2024-01-15");
-    detail.dateOfLeaving = new Date("2024-06-15");
-    detail.dateOfBirth = new Date("1990-01-01");
-    detail.licenseIssueDate = new Date("2023-01-15");
-    detail.licenseExpiryDate = new Date("2025-01-15");
-    detail.lifeInsuranceExpiryDate = new Date("2025-06-15");
-    detail.mediclaimExpiryDate = new Date("2025-12-15");
+    detail.dateOfJoining = "2024-01-15";
+    detail.dateOfLeaving = "2024-06-15";
+    detail.dateOfBirth = "1990-01-01";
+    detail.licenseIssueDate = "2023-01-15";
+    detail.licenseExpiryDate = "2025-01-15";
+    detail.lifeInsuranceExpiryDate = "2025-06-15";
+    detail.mediclaimExpiryDate = "2025-12-15";
 
     const dto = plainToInstance(UpdateDriverDetailDto, {
       deviceId: null,
@@ -401,7 +401,7 @@ describe("DriverDetail ManyToMany relation inputs", () => {
 
   test("update leaves omitted deviceId and date fields unchanged", async () => {
     const { service, detail } = makeService();
-    const joining = new Date("2024-01-15");
+    const joining = "2024-01-15";
     detail.deviceId = "device-1";
     detail.dateOfJoining = joining;
 
