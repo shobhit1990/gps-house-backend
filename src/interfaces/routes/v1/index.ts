@@ -39,9 +39,12 @@ import vehicleLiveTrackingRoutes from "./vehicleLiveTrackingRoutes";
 import vehicleLogReportRoutes from "./vehicleLogReportRoutes";
 import travelSummaryRoutes from "./travelSummaryRoutes";
 import vehicleHistoryTrackingRoutes from "./vehicleHistoryTrackingRoutes";
-
+import analyticsDashboardRoutes from "./analyticsDashboardRoutes";
+import distanceReportsRoutes from "./distanceReports";
+import idleSummaryRoutes from "./idleSummaryRoutes";
 import authRoutes from "./authRoutes";
 import { authenticateUser } from "../../middlewares/userAuthentication";
+import driverAssignmentRoutes from "./driverAssignmentRoutes";
 
 const router = express.Router();
 
@@ -85,7 +88,10 @@ router.use("/driverDetail", driverDetailRoutes);
 router.use("/policy", authenticateUser, policyRoutes);
 router.use("/permissions", permissionRoutes);
 router.use("/role-permissions", rolePermissionRoutes);
-
+router.use("/analytics-dashboard", authenticateUser, analyticsDashboardRoutes);
+router.use("/distance-reports", authenticateUser, distanceReportsRoutes);
+router.use("/idle-summary-report", authenticateUser, idleSummaryRoutes);
+router.use("/driver-assignment", authenticateUser, driverAssignmentRoutes);
 router.use("/auth", authRoutes);
 
 export default router;

@@ -21,6 +21,7 @@ import { IDeviceService } from "../../../services/interfaces/IDeviceService";
 import { IGeofTypeService } from "../../../services/interfaces/IGeofTypeService";
 import { IGeofenceService } from "../../../services/interfaces/IGeofenceService";
 import { ILicenseService } from "../../../services/interfaces/ILicenseService";
+import { IdleSummaryStatus } from "../../../domain/enums/IdleSummaryStatus";
 import { Minutes } from "../../../domain/enums/Minutes";
 
 @injectable()
@@ -294,6 +295,20 @@ export class MasterController {
       message: "Duration list fetched successfully",
     });
   });
+
+  getMasterIdleSummaryStatusList = asyncHandler(
+    async (_req: Request, res: Response) => {
+      const statusList = Object.values(IdleSummaryStatus).map((value) => ({
+        id: value,
+        label: value,
+        value,
+      }));
+      res.status(200).json({
+        data: statusList,
+        message: "Idle summary status list fetched successfully",
+      });
+    },
+  );
 
   private parseOptionalQueryString(
     value: unknown,

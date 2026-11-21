@@ -4,10 +4,17 @@ import {
 } from "../../domain/dto/AddGroupDto";
 import { Type } from "../../domain/enums/Type";
 
+export type AddGroupAssignedRef = {
+  id: string;
+  name: string | null;
+};
+
 export interface AddGroupResponse {
   id: string;
   groupName: string;
   assignedTo: Type;
+  vehicle: AddGroupAssignedRef | null;
+  transporter: AddGroupAssignedRef | null;
   status: string | null;
   reason: string | null;
   createdAt: Date;

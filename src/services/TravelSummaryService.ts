@@ -1,4 +1,6 @@
 import { inject, injectable } from "tsyringe";
+import { ReportType } from "../domain/enums/ReportType";
+import { SortOrder } from "../domain/enums/SortType";
 import { TRAVEL_SUMMARY_MAX_RANGE_MS } from "../domain/models/TravelSummary";
 import { TravelTrackPoint } from "../domain/models/TravelSummary";
 import { IVehicleGpsDeviceRepository } from "../domain/repositories/mysql/IVehicleGpsDeviceRepository";
@@ -50,12 +52,47 @@ export class TravelSummaryService implements ITravelSummaryService {
       to: query.to,
     });
     const pointsByVehicle = groupPoints(points);
+    const reportType = query.reportType ?? ReportType.VEHICLE_WISE;
 
-    return vehicles.map((vehicle, index) => ({
-      sn: index + 1,
-      ...this.vehicleService.mapVehicleDetail(vehicle),
-      travel: summarizeTravelPoints(pointsByVehicle.get(vehicle.externalId) ?? []),
-    }));
+    let rows: TravelSummaryRow[];
+    if (reportType === ReportType.DAY_WISE) {
+      rows = [];
+      for (const vehicle of vehicles) {
+        const detail = this.vehicleService.mapVehicleDetail(vehicle);
+        const byDay = groupPointsByDay(pointsByVehicle.get(vehicle.externalId) ?? []);
+        const dates = [...byDay.keys()].sort();
+        for (const date of dates) {
+          rows.push({
+            sn: 0,
+            ...detail,
+            date,
+            travel: summarizeTravelPoints(byDay.get(date) ?? []),
+          });
+        }
+      }
+    } else {
+      rows = vehicles.map((vehicle) => ({
+        sn: 0,
+        ...this.vehicleService.mapVehicleDetail(vehicle),
+        travel: summarizeTravelPoints(pointsByVehicle.get(vehicle.externalId) ?? []),
+      }));
+    }
+
+    if (query.sortOrder) {
+      const direction = query.sortOrder === SortOrder.ASCENDING ? 1 : -1;
+      rows.sort((a, b) => {
+        const distanceDiff =
+          (a.travel.distanceKm - b.travel.distanceKm) * direction;
+        if (distanceDiff !== 0) {
+          return distanceDiff;
+        }
+        const dateA = a.date ?? "";
+        const dateB = b.date ?? "";
+        return dateA.localeCompare(dateB) * direction;
+      });
+    }
+
+    return rows.map((row, index) => ({ ...row, sn: index + 1 }));
   }
 }
 
@@ -67,4 +104,24 @@ function groupPoints(points: TravelTrackPoint[]): Map<string, TravelTrackPoint[]
     grouped.set(point.vehicleId, rows);
   }
   return grouped;
+}
+
+function groupPointsByDay(
+  points: TravelTrackPoint[],
+): Map<string, TravelTrackPoint[]> {
+  const grouped = new Map<string, TravelTrackPoint[]>();
+  for (const point of points) {
+    const key = toLocalDayKey(point.locationTime);
+    const rows = grouped.get(key) ?? [];
+    rows.push(point);
+    grouped.set(key, rows);
+  }
+  return grouped;
+}
+
+function toLocalDayKey(value: Date): string {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }

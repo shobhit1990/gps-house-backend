@@ -90,4 +90,9 @@ router.get("/license", masterController.getMasterLicenseList);
 
 router.get("/duration", masterController.getMasterDurationList);
 
+router.get(
+  "/idleSummaryStatus",
+  masterController.getMasterIdleSummaryStatusList,
+);
+
 export default router;

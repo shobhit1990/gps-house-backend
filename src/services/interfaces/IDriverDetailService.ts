@@ -29,6 +29,7 @@ export interface DriverDetailResponse {
   supervisorName: string | null;
   supervisorPhoneNumber: string | null;
   address: string | null;
+  documents: Array<{ documentName: string; uploadDocument: string }>;
   licenseAvailable: boolean;
   licenseVerified: boolean;
   enableGeoVerifiedAttendance: boolean;

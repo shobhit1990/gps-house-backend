@@ -95,6 +95,10 @@ export class DriverDetail {
   @Property({ nullable: true })
   address?: string | null;
 
+  /** Document name + uploaded image path rows from the Upload Documents tab. */
+  @Property({ type: "json", nullable: true })
+  documents: Array<{ documentName: string; uploadDocument: string }> = [];
+
   @Property({ nullable: false, default: true })
   licenseAvailable: boolean = true;
 
