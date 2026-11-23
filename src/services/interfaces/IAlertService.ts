@@ -1,5 +1,6 @@
 import { CreateAlertDto, UpdateAlertDto } from "../../domain/dto/AddAlertDto";
 import { AlertAssignType } from "../../domain/enums/AlertAssignType";
+import { NotificationType } from "../../domain/enums/NotificationType";
 import { Status } from "../../domain/enums/status";
 
 export interface AlertResponse {
@@ -16,10 +17,17 @@ export interface AlertResponse {
   updatedAt: Date;
 }
 
+export type AlertListFilter = {
+  clientExternalId?: string;
+  transporterExternalId?: string;
+  vehicleExternalId?: string;
+  notification?: NotificationType;
+};
+
 export interface IAlertService {
   getAlert(): Promise<{ id: string; alertName: string }[]>;
 
-  getAlerts(): Promise<AlertResponse[]>;
+  getAlerts(filter?: AlertListFilter): Promise<AlertResponse[]>;
 
   getAlertById(externalId: string): Promise<AlertResponse>;
 

@@ -10,10 +10,12 @@ import { User } from "../../../../domain/entities/mysql/User";
 import { AlertAssignType } from "../../../../domain/enums/AlertAssignType";
 import { AppError } from "../../../../utils/errors";
 import {
+  AlertListFilter,
   CreateAlertRecord,
   IAlertRepository,
   UpdateAlertRecord,
 } from "../../../../domain/repositories/mysql/IAlertRepository";
+import { FilterQuery } from "@mikro-orm/core";
 
 @injectable()
 export class AlertRepository implements IAlertRepository {
@@ -67,15 +69,48 @@ export class AlertRepository implements IAlertRepository {
     return alerts;
   }
 
-  async getAlerts(): Promise<Alert[]> {
-    return this.em.fork().find(
-      Alert,
-      { isDeleted: false },
-      {
-        populate: ["transporter", "user", "group", "vehicle", "alertType"],
-        orderBy: { createdAt: "DESC" },
-      },
-    );
+  async getAlerts(filter?: AlertListFilter): Promise<Alert[]> {
+    const vehicleWhere: Record<string, unknown> = {};
+    if (filter?.clientExternalId) {
+      vehicleWhere.client = {
+        externalId: filter.clientExternalId,
+        isDeleted: false,
+      };
+    }
+    if (filter?.transporterExternalId) {
+      vehicleWhere.transporter = {
+        externalId: filter.transporterExternalId,
+        isDeleted: false,
+      };
+    }
+    if (filter?.vehicleExternalId) {
+      vehicleWhere.externalId = filter.vehicleExternalId;
+      vehicleWhere.isDeleted = false;
+    }
+
+    const where: FilterQuery<Alert> = { isDeleted: false };
+    if (Object.keys(vehicleWhere).length > 0) {
+      where.vehicle = vehicleWhere;
+    }
+    if (filter?.notification) {
+      where.alertType = {
+        alertName: filter.notification,
+        isDeleted: false,
+      };
+    }
+
+    return this.em.fork().find(Alert, where, {
+      populate: [
+        "transporter",
+        "user",
+        "group",
+        "vehicle",
+        "vehicle.client",
+        "vehicle.transporter",
+        "alertType",
+      ],
+      orderBy: { createdAt: "DESC" },
+    });
   }
 
   async getAlertById(externalId: string): Promise<Alert | null> {

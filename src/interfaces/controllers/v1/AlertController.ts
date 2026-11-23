@@ -6,8 +6,12 @@ import {
   CreateAlertDto,
   UpdateAlertDto,
 } from "../../../domain/dto/AddAlertDto";
+import { NotificationType } from "../../../domain/enums/NotificationType";
 import { CustomRequest } from "../../../domain/models/CustomRequest";
-import { IAlertService } from "../../../services/interfaces/IAlertService";
+import {
+  AlertListFilter,
+  IAlertService,
+} from "../../../services/interfaces/IAlertService";
 import { asyncHandler } from "../../../utils/asyncHandler";
 import { formatValidationErrors } from "../../../utils/commonFunctions";
 import { AppError } from "../../../utils/errors";
@@ -19,10 +23,17 @@ export class AlertController {
     private readonly alertService: IAlertService,
   ) {}
 
-  getAlerts = asyncHandler(async (_req: Request, res: Response) => {
-    const alerts = await this.alertService.getAlerts();
+  getAlerts = asyncHandler(async (req: Request, res: Response) => {
+    const filter = this.parseListFilter(req);
+    const alerts = await this.alertService.getAlerts(filter);
     res.status(200).json({
       message: "Alert list fetched successfully",
+      filter: {
+        client: filter.clientExternalId ?? null,
+        transporter: filter.transporterExternalId ?? null,
+        vehicle: filter.vehicleExternalId ?? null,
+        notification: filter.notification ?? null,
+      },
       data: alerts,
     });
   });
@@ -74,6 +85,54 @@ export class AlertController {
       throw new AppError("Invalid alert ID", 400);
     }
     return externalId;
+  }
+
+  private parseListFilter(req: Request): AlertListFilter {
+    const notificationRaw = this.parseOptionalQueryString(
+      req.query.notification ?? req.query.notificationType,
+      "notification",
+    );
+    let notification: NotificationType | undefined;
+    if (notificationRaw) {
+      const values = Object.values(NotificationType) as string[];
+      if (!values.includes(notificationRaw)) {
+        throw new AppError(
+          `Invalid notification. Use NotificationType enum values: ${values.join(", ")}`,
+          400,
+        );
+      }
+      notification = notificationRaw as NotificationType;
+    }
+
+    return {
+      clientExternalId: this.parseOptionalQueryString(
+        req.query.client,
+        "client",
+      ),
+      transporterExternalId: this.parseOptionalQueryString(
+        req.query.transporter,
+        "transporter",
+      ),
+      vehicleExternalId: this.parseOptionalQueryString(
+        req.query.vehicle,
+        "vehicle",
+      ),
+      notification,
+    };
+  }
+
+  private parseOptionalQueryString(
+    value: unknown,
+    fieldName: string,
+  ): string | undefined {
+    if (value === undefined || value === null || value === "") {
+      return undefined;
+    }
+    const raw = Array.isArray(value) ? value[0] : value;
+    if (typeof raw !== "string" || !raw.trim()) {
+      throw new AppError(`Invalid ${fieldName}`, 400);
+    }
+    return raw.trim();
   }
 
   private async validateDto(dto: object): Promise<void> {

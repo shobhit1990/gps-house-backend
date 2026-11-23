@@ -16,14 +16,14 @@ export interface ILicenseService {
 
   createLicense(
     payload: CreateLicenseDto,
-    actorUserId?: number,
+    actorExternalId?: string,
   ): Promise<LicenseResponse>;
 
   updateLicense(
     externalId: string,
     payload: UpdateLicenseDto,
-    actorUserId?: number,
+    actorExternalId?: string,
   ): Promise<LicenseResponse>;
 
-  deleteLicense(externalId: string, actorUserId?: number): Promise<void>;
+  deleteLicense(externalId: string, actorExternalId?: string): Promise<void>;
 }

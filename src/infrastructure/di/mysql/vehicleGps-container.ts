@@ -13,6 +13,16 @@ import { ITravelSummaryService } from "../../../services/interfaces/ITravelSumma
 import { TravelSummaryService } from "../../../services/TravelSummaryService";
 import { IIdleSummaryService } from "../../../services/interfaces/IIdleSummaryService";
 import { IdleSummaryService } from "../../../services/IdleSummaryService";
+import { ISpeedDistanceService } from "../../../services/interfaces/ISpeedDistanceService";
+import { SpeedDistanceService } from "../../../services/SpeedDistanceService";
+import { IStatusReportService } from "../../../services/interfaces/IStatusReportService";
+import { StatusReportService } from "../../../services/StatusReportService";
+import { ISensorReportService } from "../../../services/interfaces/ISensorReportService";
+import { SensorReportService } from "../../../services/SensorReportService";
+import { IRideReportService } from "../../../services/interfaces/IRideReportService";
+import { RideReportService } from "../../../services/RideReportService";
+import { IGeofenceReportService } from "../../../services/interfaces/IGeofenceReportService";
+import { GeofenceReportService } from "../../../services/GeofenceReportService";
 import { IReverseGeocodeService } from "../../../services/interfaces/IReverseGeocodeService";
 import { ReverseGeocodeService } from "../../../services/ReverseGeocodeService";
 
@@ -27,4 +37,12 @@ export function registerVehicleGpsDependencies() {
   container.register<IVehicleLiveTrackingService>("IVehicleLiveTrackingService", VehicleLiveTrackingService);
   container.register<ITravelSummaryService>("ITravelSummaryService", TravelSummaryService);
   container.register<IIdleSummaryService>("IIdleSummaryService", IdleSummaryService);
+  container.register<ISpeedDistanceService>("ISpeedDistanceService", SpeedDistanceService);
+  container.register<IStatusReportService>("IStatusReportService", StatusReportService);
+  container.register<ISensorReportService>("ISensorReportService", SensorReportService);
+  container.register<IRideReportService>("IRideReportService", RideReportService);
+  container.register<IGeofenceReportService>(
+    "IGeofenceReportService",
+    GeofenceReportService,
+  );
 }
