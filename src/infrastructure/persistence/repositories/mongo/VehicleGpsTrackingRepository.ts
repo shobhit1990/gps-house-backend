@@ -7,7 +7,10 @@ import { TRAVEL_SUMMARY_POINT_CAP, TravelTrackPoint } from '../../../../domain/m
 import { GpsTracking } from '../../../../domain/entities/mongo/GpsTracking';
 import { VehicleGpsTrackingLatestDocument } from '../../../../domain/models/VehicleGpsTrackingLatest';
 import { logger } from '../../../../configs/logger';
-import { IVehicleGpsTrackingRepository } from '../../../../domain/repositories/mongo/IVehicleGpsTrackingRepository';
+import {
+  IVehicleGpsTrackingRepository,
+  SensorAlarmPoint,
+} from '../../../../domain/repositories/mongo/IVehicleGpsTrackingRepository';
 import {
   calculateGuardedGpsDistance,
   haversineDistanceMeters,
@@ -682,6 +685,72 @@ export class VehicleGpsTrackingRepository implements IVehicleGpsTrackingReposito
         "Date range has too many GPS points. Narrow the client, transporter, vehicle, or dates.",
         400,
       );
+    }
+
+    return points;
+  }
+
+  async findSensorAlarmPoints(query: {
+    vehicleIds: string[];
+    from: Date;
+    to: Date;
+    limit?: number;
+  }): Promise<SensorAlarmPoint[]> {
+    const vehicleIds = [...new Set(query.vehicleIds.map((id) => id.trim()).filter(Boolean))];
+    if (vehicleIds.length === 0) {
+      return [];
+    }
+
+    const cap = Math.max(1, query.limit ?? TRAVEL_SUMMARY_POINT_CAP);
+    const collectionNames = await this.resolveCollectionNames(query.from, query.to);
+    const existingCollections = new Set(await this.connection.listCollections());
+    const points: SensorAlarmPoint[] = [];
+
+    for (const collectionName of collectionNames) {
+      if (!existingCollections.has(collectionName) || points.length >= cap) {
+        continue;
+      }
+      const collection = this.connection.getCollection<GpsTracking>(collectionName);
+      if (!vehicleHistoryIndexEnsured.has(collectionName)) {
+        await collection.createIndex({ vehicleId: 1, locationTime: -1 });
+        vehicleHistoryIndexEnsured.add(collectionName);
+      }
+      const docs = await collection
+        .find({
+          vehicleId: { $in: vehicleIds },
+          locationTime: { $gte: query.from, $lte: query.to },
+          $or: [
+            { 'metadata.isAlarm': true },
+            { 'metadata.alarmType': { $exists: true, $nin: [null, '', '00'] } },
+          ],
+        })
+        .sort({ locationTime: 1 })
+        .limit(cap - points.length)
+        .project({
+          ...HISTORY_PROJECTION,
+          metadata: 1,
+        })
+        .toArray();
+
+      for (const doc of docs) {
+        const metadata =
+          doc.metadata && typeof doc.metadata === 'object'
+            ? (doc.metadata as Record<string, unknown>)
+            : null;
+        points.push({
+          vehicleId: String(doc.vehicleId),
+          locationTime:
+            doc.locationTime instanceof Date ? doc.locationTime : new Date(doc.locationTime),
+          latitude: Number(doc.latitude),
+          longitude: Number(doc.longitude),
+          address: doc.address ?? null,
+          alarmType:
+            metadata?.alarmType !== undefined && metadata?.alarmType !== null
+              ? String(metadata.alarmType)
+              : null,
+          metadata,
+        });
+      }
     }
 
     return points;

@@ -40,7 +40,7 @@ export class OwnerController {
     }
 
     res.status(200).json({
-      message: "Role fetched successfully",
+      message: "Owner fetched successfully",
       data: safeTransform(owner),
     });
   });
@@ -63,7 +63,7 @@ export class OwnerController {
     await this.ownerService.createOwner(dto, req.ExternalId);
 
     res.status(201).json({
-      message: "Role created successfully",
+      message: "Owner created successfully",
     });
   });
 

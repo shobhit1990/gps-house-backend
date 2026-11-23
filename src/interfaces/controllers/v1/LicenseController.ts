@@ -42,7 +42,10 @@ export class LicenseController {
       enableImplicitConversion: true,
     });
     await this.validateDto(dto);
-    const license = await this.licenseService.createLicense(dto, req.userId);
+    const license = await this.licenseService.createLicense(
+      dto,
+      req.userExternalId,
+    );
     res.status(201).json({
       message: "License created successfully",
       data: license,
@@ -57,7 +60,7 @@ export class LicenseController {
     const license = await this.licenseService.updateLicense(
       this.getExternalId(req),
       dto,
-      req.userId,
+      req.userExternalId,
     );
     res.status(200).json({
       message: "License updated successfully",
@@ -68,7 +71,7 @@ export class LicenseController {
   deleteLicense = asyncHandler(async (req: CustomRequest, res: Response) => {
     await this.licenseService.deleteLicense(
       this.getExternalId(req),
-      req.userId,
+      req.userExternalId,
     );
     res.status(200).json({
       message: "License deleted successfully",

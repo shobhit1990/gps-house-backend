@@ -42,9 +42,18 @@ import vehicleHistoryTrackingRoutes from "./vehicleHistoryTrackingRoutes";
 import analyticsDashboardRoutes from "./analyticsDashboardRoutes";
 import distanceReportsRoutes from "./distanceReports";
 import idleSummaryRoutes from "./idleSummaryRoutes";
+import simTrackingRoutes from "./simTrackingRoutes";
+import speedDistanceRoutes from "./speedDistanceRoutes";
+import statusReportRoutes from "./statusReportRoutes";
+import sensorReportRoutes from "./sensorReportRoutes";
+import rideReportRoutes from "./rideReportRoutes";
+import registerMobileReportRoutes from "./registerMobileReportRoutes";
+import poiReportRoutes from "./poiReportRoutes";
+import geofenceReportRoutes from "./geofenceReportRoutes";
 import authRoutes from "./authRoutes";
 import { authenticateUser } from "../../middlewares/userAuthentication";
 import driverAssignmentRoutes from "./driverAssignmentRoutes";
+import sendCommandLogReportRoutes from "./sendCommandLOgRoutes";
 
 const router = express.Router();
 
@@ -83,6 +92,7 @@ router.use("/license", authenticateUser, licenseRoutes);
 router.use("/vehicleLiveTracking", authenticateUser, vehicleLiveTrackingRoutes);
 router.use("/vehicleLogReport", authenticateUser, vehicleLogReportRoutes);
 router.use("/travelSummaryReport", authenticateUser, travelSummaryRoutes);
+router.use("/sendCommandLogReport", authenticateUser, sendCommandLogReportRoutes);
 router.use("/vehicleHistoryTracking", authenticateUser, vehicleHistoryTrackingRoutes);
 router.use("/driverDetail", driverDetailRoutes);
 router.use("/policy", authenticateUser, policyRoutes);
@@ -91,6 +101,18 @@ router.use("/role-permissions", rolePermissionRoutes);
 router.use("/analytics-dashboard", authenticateUser, analyticsDashboardRoutes);
 router.use("/distance-reports", authenticateUser, distanceReportsRoutes);
 router.use("/idle-summary-report", authenticateUser, idleSummaryRoutes);
+router.use("/sim-tracking-report", authenticateUser, simTrackingRoutes);
+router.use("/speed-and-distance-report", authenticateUser, speedDistanceRoutes);
+router.use("/status-report", authenticateUser, statusReportRoutes);
+router.use("/sensor-report", authenticateUser, sensorReportRoutes);
+router.use("/ride-report", authenticateUser, rideReportRoutes);
+router.use(
+  "/register-mobile-report",
+  authenticateUser,
+  registerMobileReportRoutes,
+);
+router.use("/poi-report", authenticateUser, poiReportRoutes);
+router.use("/geofence-report", authenticateUser, geofenceReportRoutes);
 router.use("/driver-assignment", authenticateUser, driverAssignmentRoutes);
 router.use("/auth", authRoutes);
 

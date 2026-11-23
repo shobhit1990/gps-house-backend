@@ -9,7 +9,10 @@ import { Transporter } from "../domain/entities/mysql/Transporter";
 import { User } from "../domain/entities/mysql/User";
 import { AlertAssignType } from "../domain/enums/AlertAssignType";
 import { Status } from "../domain/enums/status";
-import { IAlertService } from "./interfaces/IAlertService";
+import {
+  AlertListFilter,
+  IAlertService,
+} from "./interfaces/IAlertService";
 import { IAlertRepository } from "../domain/repositories/mysql/IAlertRepository";
 import { AppError } from "../utils/errors";
 import { Alert } from "../domain/entities/mysql/Alert";
@@ -32,8 +35,8 @@ export class AlertService implements IAlertService {
     }));
   }
 
-  async getAlerts() {
-    const alerts = await this.alertRepository.getAlerts();
+  async getAlerts(filter?: AlertListFilter) {
+    const alerts = await this.alertRepository.getAlerts(filter);
     return alerts.map((alert) => this.toResponse(alert));
   }
 

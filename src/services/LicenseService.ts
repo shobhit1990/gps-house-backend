@@ -3,6 +3,7 @@ import { inject, injectable } from "tsyringe";
 import { CreateLicenseDto, UpdateLicenseDto } from "../domain/dto/LicenseDto";
 import { Client } from "../domain/entities/mysql/Client";
 import { License } from "../domain/entities/mysql/License";
+import { User } from "../domain/entities/mysql/User";
 import { Status } from "../domain/enums/status";
 import { ILicenseRepository } from "../domain/repositories/mysql/ILicenseRepository";
 import { AppError } from "../utils/errors";
@@ -32,11 +33,11 @@ export class LicenseService implements ILicenseService {
 
   async createLicense(
     payload: CreateLicenseDto,
-    actorUserId?: number,
+    actorExternalId?: string,
   ): Promise<LicenseResponse> {
     const license = new License();
     license.license = payload.license;
-    license.createdBy = await this.findActor(actorUserId);
+    license.createdBy = await this.findActor(actorExternalId);
     const savedLicense = await this.licenseRepository.createLicense(license);
     return this.toResponse(savedLicense);
   }
@@ -44,7 +45,7 @@ export class LicenseService implements ILicenseService {
   async updateLicense(
     externalId: string,
     payload: UpdateLicenseDto,
-    actorUserId?: number,
+    actorExternalId?: string,
   ): Promise<LicenseResponse> {
     const license = await this.licenseRepository.getLicenseById(externalId);
     if (!license) {
@@ -54,31 +55,44 @@ export class LicenseService implements ILicenseService {
     if (payload.license !== undefined) license.license = payload.license;
     if (payload.status !== undefined) license.status = payload.status;
     if (payload.reason !== undefined) license.reason = payload.reason;
-    license.updatedBy = await this.findActor(actorUserId);
+    license.updatedBy = await this.findActor(actorExternalId);
     const updatedLicense = await this.licenseRepository.updateLicense(license);
     return this.toResponse(updatedLicense);
   }
 
-  async deleteLicense(externalId: string, actorUserId?: number): Promise<void> {
-    const actor = await this.findActor(actorUserId);
+  async deleteLicense(
+    externalId: string,
+    actorExternalId?: string,
+  ): Promise<void> {
+    const actor = await this.findActor(actorExternalId);
     await this.licenseRepository.deleteLicense(externalId, actor);
   }
 
-  private async findActor(userId?: number): Promise<Client | undefined> {
-    if (userId === undefined) return undefined;
-    if (!Number.isSafeInteger(userId) || userId <= 0) {
+  private async findActor(
+    userExternalId?: string,
+  ): Promise<Client | undefined> {
+    if (userExternalId === undefined) return undefined;
+    if (typeof userExternalId !== "string" || !userExternalId.trim()) {
       throw new AppError("Invalid user ID", 401);
     }
 
-    const actor = await this.em.fork().findOne(Client, {
-      id: userId,
+    const em = this.em.fork();
+    const user = await em.findOne(User, {
+      externalId: userExternalId,
       isDeleted: false,
       status: Status.ACTIVE,
     });
-    if (!actor) {
+    if (!user) {
       throw new AppError("User not found", 401);
     }
-    return actor;
+
+    // Admin/users may exist without a Client row; createdBy/updatedBy stay unset.
+    const actor = await em.findOne(Client, {
+      externalId: user.externalId,
+      isDeleted: false,
+      status: Status.ACTIVE,
+    });
+    return actor ?? undefined;
   }
 
   private toResponse(license: License): LicenseResponse {

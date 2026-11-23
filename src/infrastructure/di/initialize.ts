@@ -46,6 +46,9 @@ import { registerPolicyDependencies } from "./mysql/policy-container";
 import { DatabaseSeeder } from "../persistence/seeders/DatabaseSeeder";
 import { convertUsersUserTypeToRoleFkFromConnection } from "../persistence/mysql/convertUsersUserTypeToRoleFk";
 import { registerVehicleGpsDependencies } from "./mysql/vehicleGps-container";
+import { registerSimTrackingDependencies } from "./mysql/simTracking-container";
+import { registerRegisterMobileReportDependencies } from "./mysql/registerMobileReport-container";
+import { registerPoiReportDependencies } from "./mysql/poiReport-container";
 import { container } from "tsyringe";
 import { IVehicleGpsDeviceResolver } from "../../services/interfaces/IVehicleGpsDeviceResolver";
 import { IVehicleGpsQueue } from "../../services/interfaces/IVehicleGpsQueue";
@@ -93,6 +96,9 @@ export async function initializeApp() {
     registerDriverDetailDependencies();
     registerPolicyDependencies();
     registerVehicleGpsDependencies();
+    registerSimTrackingDependencies();
+    registerRegisterMobileReportDependencies();
+    registerPoiReportDependencies();
 
     const orm = await initializeORM();
 

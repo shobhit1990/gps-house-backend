@@ -67,7 +67,13 @@ export class OwnerService implements IOwnerService {
         }
 
         if (payload.ownerName !== undefined) {
-            owner.ownerName = payload.ownerName;
+            owner.ownerName = payload.ownerName.trim();
+        }
+        if (payload.status !== undefined) {
+            owner.status = payload.status;
+        }
+        if (payload.reason !== undefined) {
+            owner.reason = payload.reason.trim() || undefined;
         }
 
         owner.updatedAt = new Date();
