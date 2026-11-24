@@ -38,6 +38,22 @@ export class ServiceMaintenanceRepository
       );
   }
 
+  async getServiceMaintenancesByVehicleId(
+    vehicleExternalId: string,
+  ): Promise<ServiceMaintenance[]> {
+    return this.em.fork().find(
+      ServiceMaintenance,
+      {
+        isDeleted: false,
+        vehicle: { externalId: vehicleExternalId, isDeleted: false },
+      },
+      {
+        populate: ["vehicle"],
+        orderBy: { createdAt: "desc" },
+      },
+    );
+  }
+
   async createServiceMaintenance(
     serviceMaintenance: ServiceMaintenance,
   ): Promise<ServiceMaintenance> {

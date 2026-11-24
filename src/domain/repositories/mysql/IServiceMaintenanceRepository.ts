@@ -13,6 +13,10 @@ export interface IServiceMaintenanceRepository {
     externalId: string,
   ): Promise<ServiceMaintenance | null>;
 
+  getServiceMaintenancesByVehicleId(
+    vehicleExternalId: string,
+  ): Promise<ServiceMaintenance[]>;
+
   createServiceMaintenance(
     serviceMaintenance: ServiceMaintenance,
   ): Promise<ServiceMaintenance>;

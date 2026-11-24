@@ -4,8 +4,10 @@ import {
   CreatePaymentDetailsDto,
   UpdatePaymentDetailsDto,
 } from "../domain/dto/PaymentDetailsDto";
+import { AddVehicle } from "../domain/entities/mysql/AddVehicle";
 import { PaymentDetails } from "../domain/entities/mysql/PaymentDetails";
 import { Transporter } from "../domain/entities/mysql/Transporter";
+import { Type } from "../domain/enums/Type";
 import { IPaymentDetailsRepository } from "../domain/repositories/mysql/IPaymentDetailsRepository";
 import {
   IPaymentDetailsService,
@@ -46,6 +48,16 @@ export class PaymentDetailsService implements IPaymentDetailsService {
     const paymentDetails = new PaymentDetails();
     this.assignFields(paymentDetails, payload);
     paymentDetails.transporter = transporter;
+    paymentDetails.type = payload.type;
+
+    if (payload.type === Type.VEHICLE) {
+      if (!payload.vehicle) {
+        throw new AppError("vehicle is required when type is vehicle", 400);
+      }
+      paymentDetails.vehicle = await this.findVehicle(payload.vehicle);
+    } else {
+      paymentDetails.vehicle = null;
+    }
 
     const created =
       await this.paymentDetailsRepository.createPaymentDetails(paymentDetails);
@@ -67,6 +79,17 @@ export class PaymentDetailsService implements IPaymentDetailsService {
     }
     this.assignFields(existing, payload);
 
+    const effectiveType = payload.type ?? existing.type;
+    if (effectiveType === Type.VEHICLE) {
+      if (payload.vehicle !== undefined) {
+        existing.vehicle = await this.findVehicle(payload.vehicle);
+      } else if (!existing.vehicle) {
+        throw new AppError("vehicle is required when type is vehicle", 400);
+      }
+    } else if (payload.type === Type.TRANSPORTER) {
+      existing.vehicle = null;
+    }
+
     const updated =
       await this.paymentDetailsRepository.updatePaymentDetails(existing);
     return this.toResponse(updated);
@@ -85,6 +108,17 @@ export class PaymentDetailsService implements IPaymentDetailsService {
       throw new AppError("Transporter not found", 404);
     }
     return transporter;
+  }
+
+  private async findVehicle(externalId: string): Promise<AddVehicle> {
+    const vehicle = await this.em.fork().findOne(AddVehicle, {
+      externalId,
+      isDeleted: false,
+    });
+    if (!vehicle) {
+      throw new AppError("Vehicle not found", 404);
+    }
+    return vehicle;
   }
 
   private assignFields(
@@ -122,6 +156,12 @@ export class PaymentDetailsService implements IPaymentDetailsService {
         name: paymentDetails.transporter.name ?? null,
         companyName: paymentDetails.transporter.companyName,
       },
+      vehicle: paymentDetails.vehicle
+        ? {
+            id: paymentDetails.vehicle.externalId,
+            vehicle: paymentDetails.vehicle.vehicle,
+          }
+        : null,
       sellingPrice: paymentDetails.sellingPrice ?? null,
       paymentTerm: paymentDetails.paymentTerm,
       installationDate:

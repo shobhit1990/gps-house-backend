@@ -11,6 +11,7 @@ import { v4 as uuidv4 } from "uuid";
 import { PaymentTerm } from "../../enums/PaymentTerm";
 import { Status } from "../../enums/status";
 import { Type } from "../../enums/Type";
+import { AddVehicle } from "./AddVehicle";
 import { Transporter } from "./Transporter";
 import { Client } from "./Client";
 
@@ -31,6 +32,11 @@ export class PaymentDetails {
   @Expose()
   @ManyToOne(() => Transporter, { fieldName: "transporter", nullable: false })
   transporter!: Transporter;
+
+  /** Present when type = vehicle; null when type = transporter */
+  @Expose()
+  @ManyToOne(() => AddVehicle, { fieldName: "vehicle", nullable: true })
+  vehicle?: AddVehicle | null;
 
   @Property({ type: "double", nullable: true })
   sellingPrice?: number;

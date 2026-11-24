@@ -7,9 +7,13 @@ export interface IRoleRepository {
 
   getRoleByRoleCode(roleCode: string): Promise<Role | null>;
 
+  getDeletedRoleByRoleCode(roleCode: string): Promise<Role | null>;
+
   createRole(role: Role): Promise<Role>;
 
   updateRole(role: Role): Promise<Role>;
+
+  restoreRole(role: Role): Promise<Role>;
 
   deleteRole(externalId: string): Promise<void>;
 }

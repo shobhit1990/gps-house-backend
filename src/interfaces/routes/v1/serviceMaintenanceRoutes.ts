@@ -29,6 +29,10 @@ router.post(
 );
 
 router.get("/getAll", controller.getServiceMaintenances);
+router.get(
+  "/getByVehicleId/:vehicleId",
+  controller.getServiceMaintenancesByVehicleId,
+);
 router.get("/getById/:externalId", controller.getServiceMaintenanceById);
 router.post(
   "/",

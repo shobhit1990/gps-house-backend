@@ -35,6 +35,11 @@ export class RoleRepository implements IRoleRepository {
     return await emFork.findOne(Role, { roleCode, isDeleted: false });
   }
 
+  async getDeletedRoleByRoleCode(roleCode: string): Promise<Role | null> {
+    const emFork = this.em.fork();
+    return await emFork.findOne(Role, { roleCode, isDeleted: true });
+  }
+
   async createRole(role: Role): Promise<Role> {
     const emFork = this.em.fork();
     emFork.persist(role);
@@ -63,6 +68,30 @@ export class RoleRepository implements IRoleRepository {
     return existing;
   }
 
+  async restoreRole(role: Role): Promise<Role> {
+    const emFork = this.em.fork();
+    const existing = await emFork.findOne(Role, {
+      externalId: role.externalId,
+      isDeleted: true,
+    });
+    if (!existing) {
+      throw new AppError("role not found", 404);
+    }
+
+    existing.isDeleted = false;
+    existing.deletedAt = null as unknown as undefined;
+    existing.deletedBy = null as unknown as undefined;
+    existing.roleCode = role.roleCode;
+    existing.name = role.name;
+    existing.reason = role.reason;
+    existing.status = role.status;
+    existing.updatedAt = role.updatedAt;
+
+    await emFork.flush();
+    await ensureEmptyRoleMenuPermissions(emFork, existing);
+    return existing;
+  }
+
   async deleteRole(externalId: string): Promise<void> {
     const emFork = this.em.fork();
 
@@ -75,6 +104,8 @@ export class RoleRepository implements IRoleRepository {
     role.isDeleted = true;
     role.deletedAt = new Date();
     role.updatedAt = new Date();
+    // Free unique roleCode so the same code can be recreated (app checks only isDeleted: false)
+    role.roleCode = `${role.roleCode}__del__${role.id}`;
 
     await emFork.persistAndFlush(role);
   }
