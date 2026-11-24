@@ -66,6 +66,10 @@ export interface IServiceMaintenanceService {
     externalId: string,
   ): Promise<ServiceMaintenanceResponse>;
 
+  getServiceMaintenancesByVehicleId(
+    vehicleExternalId: string,
+  ): Promise<ServiceMaintenanceResponse[]>;
+
   createServiceMaintenance(
     payload: CreateServiceMaintenanceDto,
     actorUserId?: number,

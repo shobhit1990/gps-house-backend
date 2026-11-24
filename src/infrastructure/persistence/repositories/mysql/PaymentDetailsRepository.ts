@@ -1,5 +1,6 @@
 import { EntityManager } from "@mikro-orm/mysql";
 import { injectable } from "tsyringe";
+import { AddVehicle } from "../../../../domain/entities/mysql/AddVehicle";
 import { PaymentDetails } from "../../../../domain/entities/mysql/PaymentDetails";
 import { Transporter } from "../../../../domain/entities/mysql/Transporter";
 import { IPaymentDetailsRepository } from "../../../../domain/repositories/mysql/IPaymentDetailsRepository";
@@ -10,25 +11,24 @@ export class PaymentDetailsRepository implements IPaymentDetailsRepository {
   constructor(private readonly em: EntityManager) {}
 
   async getPaymentDetails(): Promise<PaymentDetails[]> {
-    return this.em
-      .fork()
-      .find(
-        PaymentDetails,
-        { isDeleted: false },
-        { populate: ["transporter"], orderBy: { createdAt: "DESC" } },
-      );
+    return this.em.fork().find(
+      PaymentDetails,
+      { isDeleted: false },
+      {
+        populate: ["transporter", "vehicle"],
+        orderBy: { createdAt: "DESC" },
+      },
+    );
   }
 
   async getPaymentDetailsById(
     externalId: string,
   ): Promise<PaymentDetails | null> {
-    return this.em
-      .fork()
-      .findOne(
-        PaymentDetails,
-        { externalId, isDeleted: false },
-        { populate: ["transporter"] },
-      );
+    return this.em.fork().findOne(
+      PaymentDetails,
+      { externalId, isDeleted: false },
+      { populate: ["transporter", "vehicle"] },
+    );
   }
 
   async createPaymentDetails(
@@ -39,7 +39,14 @@ export class PaymentDetailsRepository implements IPaymentDetailsRepository {
       Transporter,
       paymentDetails.transporter.id,
     );
+    if (paymentDetails.vehicle) {
+      paymentDetails.vehicle = em.getReference(
+        AddVehicle,
+        paymentDetails.vehicle.id,
+      );
+    }
     await em.persistAndFlush(paymentDetails);
+    await em.populate(paymentDetails, ["transporter", "vehicle"]);
     return paymentDetails;
   }
 
@@ -47,10 +54,14 @@ export class PaymentDetailsRepository implements IPaymentDetailsRepository {
     paymentDetails: PaymentDetails,
   ): Promise<PaymentDetails> {
     const em = this.em.fork();
-    const existing = await em.findOne(PaymentDetails, {
-      externalId: paymentDetails.externalId,
-      isDeleted: false,
-    });
+    const existing = await em.findOne(
+      PaymentDetails,
+      {
+        externalId: paymentDetails.externalId,
+        isDeleted: false,
+      },
+      { populate: ["transporter", "vehicle"] },
+    );
 
     if (!existing) {
       throw new AppError("Payment details not found", 404);
@@ -59,6 +70,9 @@ export class PaymentDetailsRepository implements IPaymentDetailsRepository {
     em.assign(existing, {
       type: paymentDetails.type,
       transporter: em.getReference(Transporter, paymentDetails.transporter.id),
+      vehicle: paymentDetails.vehicle
+        ? em.getReference(AddVehicle, paymentDetails.vehicle.id)
+        : null,
       sellingPrice: paymentDetails.sellingPrice,
       paymentTerm: paymentDetails.paymentTerm,
       installationDate: paymentDetails.installationDate,
@@ -70,6 +84,7 @@ export class PaymentDetailsRepository implements IPaymentDetailsRepository {
       reason: paymentDetails.reason,
     });
     await em.flush();
+    await em.populate(existing, ["transporter", "vehicle"]);
     return existing;
   }
 

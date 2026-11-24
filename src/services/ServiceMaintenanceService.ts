@@ -661,6 +661,25 @@ export class ServiceMaintenanceService implements IServiceMaintenanceService {
     return this.toResponse(detail);
   }
 
+  async getServiceMaintenancesByVehicleId(
+    vehicleExternalId: string,
+  ): Promise<ServiceMaintenanceResponse[]> {
+    const em = this.em.fork();
+    const vehicle = await em.findOne(AddVehicle, {
+      externalId: vehicleExternalId,
+      isDeleted: false,
+    });
+    if (!vehicle) {
+      throw new AppError("Vehicle not found", 404);
+    }
+
+    const details =
+      await this.serviceMaintenanceRepository.getServiceMaintenancesByVehicleId(
+        vehicleExternalId,
+      );
+    return details.map((detail) => this.toResponse(detail));
+  }
+
   async createServiceMaintenance(
     payload: CreateServiceMaintenanceDto,
     actorUserId?: number,

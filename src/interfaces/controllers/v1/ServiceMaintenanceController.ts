@@ -95,6 +95,19 @@ export class ServiceMaintenanceController {
     },
   );
 
+  getServiceMaintenancesByVehicleId = asyncHandler(
+    async (req: Request, res: Response) => {
+      const details =
+        await this.serviceMaintenanceService.getServiceMaintenancesByVehicleId(
+          this.getVehicleId(req),
+        );
+      res.status(200).json({
+        message: "Service maintenance list fetched successfully by vehicle",
+        data: details,
+      });
+    },
+  );
+
   createServiceMaintenance = asyncHandler(
     async (req: CustomRequest, res: Response) => {
       const dto = plainToInstance(CreateServiceMaintenanceDto, req.body);
@@ -148,7 +161,16 @@ export class ServiceMaintenanceController {
     if (typeof externalId !== "string" || !externalId.trim()) {
       throw new AppError("Invalid service maintenance ID", 400);
     }
-    return externalId;
+    return externalId.trim();
+  }
+
+  private getVehicleId(req: Request): string {
+    const param = req.params.vehicleId;
+    const vehicleId = Array.isArray(param) ? param[0] : param;
+    if (typeof vehicleId !== "string" || !vehicleId.trim()) {
+      throw new AppError("Invalid vehicle ID", 400);
+    }
+    return vehicleId.trim();
   }
 
   private async validateDto(dto: object): Promise<void> {

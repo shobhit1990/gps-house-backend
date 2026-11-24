@@ -104,15 +104,15 @@ export class JobsheetService implements IJobsheetService {
       throw new AppError("Invalid user ID", 401);
     }
 
-    const actor = await this.em.fork().findOne(Client, {
-      id: userId,
-      isDeleted: false,
-      status: Status.ACTIVE,
-    });
-    if (!actor) {
-      throw new AppError("User not found", 401);
-    }
-    return actor;
+    // const actor = await this.em.fork().findOne(Client, {
+    //   id: userId,
+    //   isDeleted: false,
+    //   status: Status.ACTIVE,
+    // });
+    // if (!actor) {
+    //   throw new AppError("User not found", 401);
+    // }
+    // return actor;
   }
 
   private async findVehicle(externalId: string): Promise<AddVehicle> {

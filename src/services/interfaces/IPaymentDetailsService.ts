@@ -11,6 +11,10 @@ export interface PaymentDetailsResponse {
     name: string | null;
     companyName: string;
   };
+  vehicle: {
+    id: string;
+    vehicle: string;
+  } | null;
   sellingPrice: number | null;
   paymentTerm: string;
   installationDate: string | null;

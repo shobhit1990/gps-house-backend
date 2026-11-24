@@ -207,11 +207,11 @@ export function IsPassword(validationOptions?: ValidationOptions) {
           // - At least one digit
           // - At least one special character
           const passwordRegex =
-            /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,72}$/;
+            /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{4,72}$/;
           return passwordRegex.test(value);
         },
         defaultMessage(args: ValidationArguments) {
-          return `${args.property} must be 8 to 72 characters with at least one uppercase letter, one lowercase letter, one digit, and one special character (@$!%*?&#)`;
+          return `${args.property} must be 4 to 72 characters with at least one uppercase letter, one lowercase letter, one digit, and one special character (@$!%*?&#)`;
         },
       },
     });

@@ -38,9 +38,21 @@ export class RoleService implements IRoleService {
 
   async createRole(payload: CreateRoleDto): Promise<Role> {
     const roleCode = payload.roleCode.trim();
+    // Duplicate check only against active (isDeleted: false) roles
     const existingRole = await this.roleRepository.getRoleByRoleCode(roleCode);
     if (existingRole) {
       throw this.duplicateRoleCodeError();
+    }
+
+    const softDeleted =
+      await this.roleRepository.getDeletedRoleByRoleCode(roleCode);
+    if (softDeleted) {
+      softDeleted.roleCode = roleCode;
+      softDeleted.name = payload.name.trim();
+      softDeleted.status = payload.status ?? Status.ACTIVE;
+      softDeleted.reason = payload.reason?.trim() || undefined;
+      softDeleted.updatedAt = new Date();
+      return this.roleRepository.restoreRole(softDeleted);
     }
 
     const role = new Role();
