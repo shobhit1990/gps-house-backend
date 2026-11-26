@@ -95,4 +95,18 @@ router.get(
   masterController.getMasterIdleSummaryStatusList,
 );
 
+router.get("/alertOperation", masterController.getMasterAlertOperationList);
+
+router.get("/addAlertType", masterController.getMasterAddAlertTypeList);
+
+router.get(
+  "/geofenceRestrictionType",
+  masterController.getMasterGeofenceRestrictionTypeList,
+);
+
+router.get(
+  "/tripRestrictionType",
+  masterController.getMasterTripRestrictionTypeList,
+);
+
 export default router;

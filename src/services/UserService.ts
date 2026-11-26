@@ -17,6 +17,7 @@ import { AppError } from "../utils/errors";
 import {
   createAuthToken,
   createRefreshToken,
+  getRefreshTokenExpiresAt,
   hashRefreshToken,
 } from "../utils/authToken";
 import {
@@ -389,8 +390,7 @@ export class UserService implements IUserService {
   ): Promise<UserLoginResult> {
     const token = createAuthToken(user);
     const refresh = createRefreshToken();
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 30);
+    const expiresAt = getRefreshTokenExpiresAt();
     const updatedRows = await this.userRepository.updateRefreshToken(
       user.externalId,
       refresh.hash,

@@ -17,6 +17,7 @@ import { AppError } from "../utils/errors";
 import { hashPassword } from "../utils/passwordHash";
 import { UserType } from "../domain/enums/UserType";
 import { assignUserRole } from "../utils/userRoleAssignment";
+import { toUserPhone } from "../utils/textNormalization";
 
 @injectable()
 export class TransporterService implements ITransporterService {
@@ -215,8 +216,7 @@ export class TransporterService implements ITransporterService {
     user.companyName = transporter.companyName;
     user.name = transporter.name;
     user.email = transporter.email;
-    user.phone =
-      transporter.phone === undefined ? undefined : String(transporter.phone);
+    user.phone = toUserPhone(transporter.phone);
     user.address = transporter.address;
     user.companyAddress = transporter.address;
     user.client = commonClient;
@@ -395,8 +395,7 @@ export class TransporterService implements ITransporterService {
     unifiedUser.companyName = existing.companyName;
     unifiedUser.name = existing.name;
     unifiedUser.email = existing.email;
-    unifiedUser.phone =
-      existing.phone === undefined ? undefined : String(existing.phone);
+    unifiedUser.phone = toUserPhone(existing.phone);
     unifiedUser.address = existing.address;
     unifiedUser.companyAddress = existing.address;
     unifiedUser.language = existing.language;

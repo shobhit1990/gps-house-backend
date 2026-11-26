@@ -14,6 +14,7 @@ import { ITechnicianRepository } from "../domain/repositories/mysql/ITechnicianR
 import { AppError } from "../utils/errors";
 import { hashPassword } from "../utils/passwordHash";
 import { assignUserRole } from "../utils/userRoleAssignment";
+import { toUserPhone } from "../utils/textNormalization";
 import {
   ITechnicianService,
   TechnicianResponse,
@@ -86,8 +87,7 @@ export class TechnicianService implements ITechnicianService {
     user.companyName = technician.companyName;
     user.name = technician.name;
     user.email = technician.email;
-    user.phone =
-      technician.phone === undefined ? undefined : String(technician.phone);
+    user.phone = toUserPhone(technician.phone);
     user.address = technician.address;
     user.companyAddress = technician.address;
     user.client = unifiedClient;
@@ -172,8 +172,7 @@ export class TechnicianService implements ITechnicianService {
     unifiedUser.companyName = updated.companyName;
     unifiedUser.name = updated.name;
     unifiedUser.email = updated.email;
-    unifiedUser.phone =
-      updated.phone === undefined ? undefined : String(updated.phone);
+    unifiedUser.phone = toUserPhone(updated.phone);
     unifiedUser.address = updated.address;
     unifiedUser.companyAddress = updated.address;
     unifiedUser.timezone = updated.timezone;
@@ -213,21 +212,33 @@ export class TechnicianService implements ITechnicianService {
     }
   }
 
+  /**
+   * Auth gives `users.id`. Audit FKs point at `client`, so resolve via matching
+   * externalId. Platform admins have no client row — createdBy/updatedBy stay unset.
+   */
   private async findActor(userId?: number): Promise<Client | undefined> {
     if (userId === undefined) return undefined;
     if (!Number.isSafeInteger(userId) || userId <= 0) {
       throw new AppError("Invalid user ID", 401);
     }
 
-    const actor = await this.em.fork().findOne(Client, {
+    const em = this.em.fork();
+    const authUser = await em.findOne(User, {
       id: userId,
       isDeleted: false,
       status: Status.ACTIVE,
     });
-    if (!actor) {
+    if (!authUser) {
       throw new AppError("User not found", 401);
     }
-    return actor;
+
+    return (
+      (await em.findOne(Client, {
+        externalId: authUser.externalId,
+        isDeleted: false,
+        status: Status.ACTIVE,
+      })) ?? undefined
+    );
   }
 
   private async findClient(externalId: string): Promise<Client> {

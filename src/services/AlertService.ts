@@ -253,6 +253,10 @@ export class AlertService implements IAlertService {
     await this.alertRepository.deleteAlert(externalId, actor?.id);
   }
 
+  /**
+   * Auth gives `users.id`. Audit FKs point at `client`, so resolve via matching
+   * externalId. Platform admins have no client row — createdBy/updatedBy stay unset.
+   */
   private async findActor(
     em: EntityManager,
     actorUserId?: number,
@@ -263,15 +267,23 @@ export class AlertService implements IAlertService {
     if (!Number.isSafeInteger(actorUserId) || actorUserId <= 0) {
       throw new AppError("Invalid user ID", 401);
     }
-    const actor = await em.findOne(Client, {
+
+    const authUser = await em.findOne(User, {
       id: actorUserId,
       isDeleted: false,
       status: Status.ACTIVE,
     });
-    if (!actor) {
+    if (!authUser) {
       throw new AppError("User not found", 401);
     }
-    return actor;
+
+    return (
+      (await em.findOne(Client, {
+        externalId: authUser.externalId,
+        isDeleted: false,
+        status: Status.ACTIVE,
+      })) ?? undefined
+    );
   }
 
   private getAssignedTargetId(alert: Alert): string {

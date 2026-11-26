@@ -23,6 +23,11 @@ import { IGeofenceService } from "../../../services/interfaces/IGeofenceService"
 import { ILicenseService } from "../../../services/interfaces/ILicenseService";
 import { IdleSummaryStatus } from "../../../domain/enums/IdleSummaryStatus";
 import { Minutes } from "../../../domain/enums/Minutes";
+import { AlertOperation } from "../../../domain/enums/AlertOperation";
+import { AddAlertType } from "../../../domain/enums/AddAlertType";
+import { GeofenceRestrictionType } from "../../../domain/enums/GeofenceRestrictionType";
+import { TripRestrictionType } from "../../../domain/enums/TripRestrictionType";
+import { Status } from "../../../domain/enums/status";
 
 @injectable()
 export class MasterController {
@@ -86,7 +91,7 @@ export class MasterController {
     async (req: CustomRequest, res: Response) => {
       const ownerList = await this.ownerService.getOwner();
       res.status(200).json({
-        data: ownerList,
+        data: this.onlyActive(ownerList),
         message: "Master Owner list fetch successfully",
       });
     },
@@ -104,7 +109,7 @@ export class MasterController {
   getMasterStateList = asyncHandler(async (_req: Request, res: Response) => {
     const stateList = await this.masterLocationService.getStates();
     res.status(200).json({
-      data: stateList,
+      data: this.onlyActive(stateList),
       message: "State list fetched successfully",
     });
   });
@@ -121,7 +126,7 @@ export class MasterController {
       stateId || undefined,
     );
     res.status(200).json({
-      data: districtList,
+      data: this.onlyActive(districtList),
       message: "District list fetched successfully",
     });
   });
@@ -148,7 +153,7 @@ export class MasterController {
     });
 
     res.status(200).json({
-      data: vehicleList,
+      data: this.onlyActive(vehicleList),
       message: "Vehicle list fetched successfully",
     });
   });
@@ -157,7 +162,7 @@ export class MasterController {
     const clientList = await this.clientService.getClient();
 
     res.status(200).json({
-      data: clientList,
+      data: this.onlyActive(clientList),
       message: "Client list fetched successfully",
     });
   });
@@ -167,7 +172,7 @@ export class MasterController {
       const technicianList = await this.technicianService.getTechnicians();
 
       res.status(200).json({
-        data: technicianList,
+        data: this.onlyActive(technicianList),
         message: "Technician list fetched successfully",
       });
     },
@@ -183,7 +188,7 @@ export class MasterController {
         await this.transporterService.getTransporter(clientExternalId);
 
       res.status(200).json({
-        data: transporterList,
+        data: this.onlyActive(transporterList),
         message: "Transporter list fetched successfully",
       });
     },
@@ -194,7 +199,7 @@ export class MasterController {
       const deviceTypeList = await this.deviceTypeService.getDeviceTypes();
 
       res.status(200).json({
-        data: deviceTypeList,
+        data: this.onlyActive(deviceTypeList),
         message: "DeviceType list fetched successfully",
       });
     },
@@ -204,7 +209,7 @@ export class MasterController {
     const deviceList = await this.deviceService.getDevices();
 
     res.status(200).json({
-      data: deviceList,
+      data: this.onlyActive(deviceList),
       message: "Device list fetched successfully",
     });
   });
@@ -214,7 +219,7 @@ export class MasterController {
       const expenseTypeList = await this.expenseTypeService.getExpenseTypes();
 
       res.status(200).json({
-        data: expenseTypeList,
+        data: this.onlyActive(expenseTypeList),
         message: "ExpenseType list fetched successfully",
       });
     },
@@ -224,7 +229,7 @@ export class MasterController {
     const roleList = await this.roleService.getRole();
 
     res.status(200).json({
-      data: roleList,
+      data: this.onlyActive(roleList),
       message: "Role list fetched successfully",
     });
   });
@@ -233,8 +238,10 @@ export class MasterController {
     const userList = await this.userService.getUsers();
 
     res.status(200).json({
-      data: userList.map(
-        ({ password, ...userWithoutPassword }) => userWithoutPassword,
+      data: this.onlyActive(
+        userList.map(
+          ({ password, ...userWithoutPassword }) => userWithoutPassword,
+        ),
       ),
       message: "User list fetched successfully",
     });
@@ -244,7 +251,7 @@ export class MasterController {
     const groupList = await this.addGroupService.getAddGroups();
 
     res.status(200).json({
-      data: groupList,
+      data: this.onlyActive(groupList),
       message: "Group list fetched successfully",
     });
   });
@@ -262,7 +269,7 @@ export class MasterController {
     const typeList = await this.geofTypeService.getGeofType();
 
     res.status(200).json({
-      data: typeList,
+      data: this.onlyActive(typeList),
       message: "GeofType list fetched successfully",
     });
   });
@@ -271,7 +278,7 @@ export class MasterController {
     const List = await this.geofenceService.getGeofences();
 
     res.status(200).json({
-      data: List,
+      data: this.onlyActive(List),
       message: "Geofence list fetched successfully",
     });
   });
@@ -279,7 +286,7 @@ export class MasterController {
   getMasterLicenseList = asyncHandler(async (_req: Request, res: Response) => {
     const licenseList = await this.licenseService.getLicenses();
     res.status(200).json({
-      data: licenseList,
+      data: this.onlyActive(licenseList),
       message: "License list fetched successfully",
     });
   });
@@ -309,6 +316,68 @@ export class MasterController {
       });
     },
   );
+
+  getMasterAlertOperationList = asyncHandler(
+    async (_req: Request, res: Response) => {
+      const operationList = Object.values(AlertOperation).map((value) => ({
+        id: value,
+        label: value,
+        value,
+      }));
+      res.status(200).json({
+        data: operationList,
+        message: "Alert operation list fetched successfully",
+      });
+    },
+  );
+
+  getMasterAddAlertTypeList = asyncHandler(
+    async (_req: Request, res: Response) => {
+      const typeList = Object.values(AddAlertType).map((value) => ({
+        id: value,
+        label: value,
+        value,
+      }));
+      res.status(200).json({
+        data: typeList,
+        message: "Add alert type list fetched successfully",
+      });
+    },
+  );
+
+  getMasterGeofenceRestrictionTypeList = asyncHandler(
+    async (_req: Request, res: Response) => {
+      const typeList = Object.values(GeofenceRestrictionType).map((value) => ({
+        id: value,
+        label: value,
+        value,
+      }));
+      res.status(200).json({
+        data: typeList,
+        message: "Geofence restriction type list fetched successfully",
+      });
+    },
+  );
+
+  getMasterTripRestrictionTypeList = asyncHandler(
+    async (_req: Request, res: Response) => {
+      const typeList = Object.values(TripRestrictionType).map((value) => ({
+        id: value,
+        label: value,
+        value,
+      }));
+      res.status(200).json({
+        data: typeList,
+        message: "Trip restriction type list fetched successfully",
+      });
+    },
+  );
+
+  private onlyActive<T extends { status?: Status | string | null }>(
+    items: T[],
+  ): T[] {
+    return items.filter((item) => item.status === Status.ACTIVE);
+  }
 
   private parseOptionalQueryString(
     value: unknown,
