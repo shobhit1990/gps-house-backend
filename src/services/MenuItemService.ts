@@ -2,6 +2,7 @@ import { EntityManager } from "@mikro-orm/mysql";
 import { inject, injectable } from "tsyringe";
 import { FormError } from "../domain/dto/FormError";
 import { Client } from "../domain/entities/mysql/Client";
+import { User } from "../domain/entities/mysql/User";
 import { MenuItem } from "../domain/entities/mysql/MenuItem";
 import { MenuType } from "../domain/enums/MenuType";
 import { Status } from "../domain/enums/status";
@@ -283,15 +284,26 @@ export class MenuItemService implements IMenuItemService {
     }
 
     if (actorUserId !== undefined) {
-      const actor = await em.findOne(Client, {
+      if (!Number.isSafeInteger(actorUserId) || actorUserId <= 0) {
+        throw new AppError("Invalid user ID", 401);
+      }
+      const authUser = await em.findOne(User, {
         id: actorUserId,
         isDeleted: false,
         status: Status.ACTIVE,
       });
-      if (!actor) {
+      if (!authUser) {
         throw new AppError("User not found", 401);
       }
-      updateData.updatedBy = actor;
+      // Admin/users may exist without a Client row; updatedBy stays unset.
+      const actor = await em.findOne(Client, {
+        externalId: authUser.externalId,
+        isDeleted: false,
+        status: Status.ACTIVE,
+      });
+      if (actor) {
+        updateData.updatedBy = actor;
+      }
     }
 
     return this.menuItemRepository.updateMenuItem(menuItem.id, updateData);

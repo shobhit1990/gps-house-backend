@@ -8,6 +8,7 @@ import { Client } from "../../../../domain/entities/mysql/Client";
 import { Transporter } from "../../../../domain/entities/mysql/Transporter";
 import { User } from "../../../../domain/entities/mysql/User";
 import { AlertAssignType } from "../../../../domain/enums/AlertAssignType";
+import { Status } from "../../../../domain/enums/status";
 import { AppError } from "../../../../utils/errors";
 import {
   AlertListFilter,
@@ -24,6 +25,7 @@ export class AlertRepository implements IAlertRepository {
   async getAlert(): Promise<AlertType[]> {
     return this.em.fork().find(AlertType, {
       isDeleted: false,
+      status: Status.ACTIVE,
     });
   }
 

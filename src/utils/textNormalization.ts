@@ -56,3 +56,19 @@ export function assertRoleCanBeMutated(roleId?: number | null): void {
     throw new AppError("Super Administrator role cannot be updated or deleted", 403);
   }
 }
+
+/**
+ * Map client/transporter/technician phone onto users.phone.
+ * Never use String(null) — that becomes the literal "null" and breaks the unique index.
+ * Returns SQL null so MikroORM clears the column instead of writing "null".
+ */
+export function toUserPhone(phone: unknown): string | null {
+  if (phone === null || phone === undefined || phone === "") {
+    return null;
+  }
+  const value = String(phone).trim();
+  if (!value || /^null$/i.test(value) || /^undefined$/i.test(value)) {
+    return null;
+  }
+  return value;
+}

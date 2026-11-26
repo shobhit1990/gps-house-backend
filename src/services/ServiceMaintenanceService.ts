@@ -12,6 +12,7 @@ import {
 import { ServiceMaintenance } from "../domain/entities/mysql/ServiceMaintenance";
 import { AddVehicle } from "../domain/entities/mysql/AddVehicle";
 import { Client } from "../domain/entities/mysql/Client";
+import { User } from "../domain/entities/mysql/User";
 import { Status } from "../domain/enums/status";
 import { IServiceMaintenanceRepository } from "../domain/repositories/mysql/IServiceMaintenanceRepository";
 import { AppError } from "../utils/errors";
@@ -920,23 +921,37 @@ export class ServiceMaintenanceService implements IServiceMaintenanceService {
     return vehicle;
   }
 
+  /**
+   * Auth gives `users.id`. Audit FKs point at `client`, so resolve via matching
+   * externalId. Platform admins have no client row — createdBy/updatedBy stay unset.
+   */
   private async findActor(
     em: EntityManager,
     actorUserId?: number,
   ): Promise<Client | undefined> {
-    if (actorUserId === undefined) return undefined;
+    if (actorUserId === undefined) {
+      return undefined;
+    }
     if (!Number.isSafeInteger(actorUserId) || actorUserId <= 0) {
       throw new AppError("Invalid user ID", 401);
     }
-    const actor = await em.findOne(Client, {
+
+    const authUser = await em.findOne(User, {
       id: actorUserId,
       isDeleted: false,
       status: Status.ACTIVE,
     });
-    if (!actor) {
+    if (!authUser) {
       throw new AppError("User not found", 401);
     }
-    return actor;
+
+    return (
+      (await em.findOne(Client, {
+        externalId: authUser.externalId,
+        isDeleted: false,
+        status: Status.ACTIVE,
+      })) ?? undefined
+    );
   }
 
   private assignFields(

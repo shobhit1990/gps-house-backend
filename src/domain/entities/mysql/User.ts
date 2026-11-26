@@ -63,7 +63,7 @@ export class User {
   email?: string;
 
   @Property({ nullable: true, unique: true, length: 20 })
-  phone?: string;
+  phone?: string | null;
 
   @Property({ nullable: true, length: 1000 })
   companyAddress?: string;

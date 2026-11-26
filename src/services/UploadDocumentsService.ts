@@ -5,6 +5,7 @@ import {
   UploadDocumentDto,
 } from "../domain/dto/UploadDocumentsDto";
 import { Client } from "../domain/entities/mysql/Client";
+import { User } from "../domain/entities/mysql/User";
 import { UploadDocument } from "../domain/entities/mysql/UploadDocumnets";
 import { Status } from "../domain/enums/status";
 import { IUploadDocumentRepository } from "../domain/repositories/mysql/IUploadDocumentsRepository";
@@ -89,18 +90,33 @@ export class UploadDocumentsService implements IUploadDocumentsService {
     await this.uploadDocumentRepository.deleteUploadDocument(externalId, actor);
   }
 
+  /**
+   * Auth gives `users.id`. Audit FKs point at `client`, so resolve via matching
+   * externalId. Platform admins have no client row — createdBy/updatedBy stay unset.
+   */
   private async findActor(userId?: number): Promise<Client | undefined> {
     if (userId === undefined) return undefined;
     if (!Number.isSafeInteger(userId) || userId <= 0) {
       throw new AppError("Invalid user ID", 401);
     }
-    const actor = await this.em.fork().findOne(Client, {
+
+    const em = this.em.fork();
+    const authUser = await em.findOne(User, {
       id: userId,
       isDeleted: false,
       status: Status.ACTIVE,
     });
-    if (!actor) throw new AppError("User not found", 401);
-    return actor;
+    if (!authUser) {
+      throw new AppError("User not found", 401);
+    }
+
+    return (
+      (await em.findOne(Client, {
+        externalId: authUser.externalId,
+        isDeleted: false,
+        status: Status.ACTIVE,
+      })) ?? undefined
+    );
   }
 
   private toResponse(document: UploadDocument): UploadDocumentResponse {

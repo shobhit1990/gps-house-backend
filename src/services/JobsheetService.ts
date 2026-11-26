@@ -6,6 +6,7 @@ import {
 } from "../domain/dto/JobsheetDto";
 import { AddVehicle } from "../domain/entities/mysql/AddVehicle";
 import { Client } from "../domain/entities/mysql/Client";
+import { User } from "../domain/entities/mysql/User";
 import { Jobsheet } from "../domain/entities/mysql/Jobsheet";
 import { Technician } from "../domain/entities/mysql/Technician";
 import { Status } from "../domain/enums/status";
@@ -98,21 +99,33 @@ export class JobsheetService implements IJobsheetService {
     await this.jobsheetRepository.deleteJobsheet(externalId, actor);
   }
 
+  /**
+   * Auth gives `users.id`. Audit FKs point at `client`, so resolve via matching
+   * externalId. Platform admins have no client row — createdBy/updatedBy stay unset.
+   */
   private async findActor(userId?: number): Promise<Client | undefined> {
     if (userId === undefined) return undefined;
     if (!Number.isSafeInteger(userId) || userId <= 0) {
       throw new AppError("Invalid user ID", 401);
     }
 
-    // const actor = await this.em.fork().findOne(Client, {
-    //   id: userId,
-    //   isDeleted: false,
-    //   status: Status.ACTIVE,
-    // });
-    // if (!actor) {
-    //   throw new AppError("User not found", 401);
-    // }
-    // return actor;
+    const em = this.em.fork();
+    const authUser = await em.findOne(User, {
+      id: userId,
+      isDeleted: false,
+      status: Status.ACTIVE,
+    });
+    if (!authUser) {
+      throw new AppError("User not found", 401);
+    }
+
+    return (
+      (await em.findOne(Client, {
+        externalId: authUser.externalId,
+        isDeleted: false,
+        status: Status.ACTIVE,
+      })) ?? undefined
+    );
   }
 
   private async findVehicle(externalId: string): Promise<AddVehicle> {
@@ -183,7 +196,7 @@ export class JobsheetService implements IJobsheetService {
         name: jobsheet.technician.name ?? null,
         companyName: jobsheet.technician.companyName,
         phone:
-          jobsheet.technician.phone === undefined
+          jobsheet.technician.phone == null
             ? null
             : String(jobsheet.technician.phone),
       },

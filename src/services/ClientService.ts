@@ -14,6 +14,7 @@ import { UserType } from "../domain/enums/UserType";
 import { Status } from "../domain/enums/status";
 import { hashPassword } from "../utils/passwordHash";
 import { assignUserRole } from "../utils/userRoleAssignment";
+import { toUserPhone } from "../utils/textNormalization";
 
 @injectable()
 export class ClientService implements IClientService {
@@ -185,7 +186,7 @@ export class ClientService implements IClientService {
     user.companyName = client.companyName;
     user.name = client.name;
     user.email = client.email;
-    user.phone = client.phone === undefined ? undefined : String(client.phone);
+    user.phone = toUserPhone(client.phone);
     user.address = client.address;
     user.companyAddress = client.address;
     user.owner = owner;
@@ -261,7 +262,7 @@ export class ClientService implements IClientService {
 
     if (payload.phone !== undefined) {
       client.phone = payload.phone;
-      unifiedUser.phone = String(payload.phone);
+      unifiedUser.phone = toUserPhone(payload.phone);
     }
 
     if (payload.address !== undefined) {
